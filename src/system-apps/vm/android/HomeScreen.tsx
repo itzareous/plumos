@@ -7,7 +7,7 @@ const GRID: PhoneApp[] = ['clock', 'calendar', 'photos', 'weather', 'notes', 'ca
 const DOCK: PhoneApp[] = ['phone', 'messages', 'browser', 'camera']
 
 /** Home screen: clock, an at-a-glance card, the app grid, a search pill and the dock. */
-export function HomeScreen({ onLaunch }: { onLaunch: (app: PhoneApp) => void }) {
+export function HomeScreen({ onLaunch }: { onLaunch: (app: PhoneApp, focus?: boolean) => void }) {
   const now = useNow(1000)
   return (
     <div className="absolute inset-x-0 flex flex-col px-5" style={{ top: STATUS_H, bottom: NAV_H }}>
@@ -39,7 +39,7 @@ export function HomeScreen({ onLaunch }: { onLaunch: (app: PhoneApp) => void }) 
       <button
         type="button"
         data-agent="home.search"
-        onClick={() => onLaunch('browser')}
+        onClick={(e) => onLaunch('browser', e.nativeEvent.isTrusted)}
         className="mt-7 flex h-12 items-center gap-3 rounded-full bg-white/[0.16] px-4 text-left text-[15px] text-white/75 ring-1 ring-white/10 backdrop-blur-md transition outline-none active:bg-white/25"
       >
         <Search size={19} className="text-white/85" />

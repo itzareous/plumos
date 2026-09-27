@@ -148,7 +148,12 @@ export function StreamChart({
       y: (v: number) => bottom - Math.min(1, Math.max(0, (v || 0) / m.top)) * (bottom - PAD_TOP),
       /** Index of the sample under an x position. */
       indexAt: (px: number) => Math.round(n - 1 - m.lag + (px - pw) / step),
-      firstVisible: Math.max(0, Math.ceil(n - 1 - m.lag - pw / step)),
+      firstVisible: Math.max(0, Math.ceil(n - 1 - m.lag - pw / step - 1e-6)),
+      /**
+       * First sample to draw: two points past the left edge, so the tangents
+       * of the visible curve never depend on which point happens to be first.
+       */
+      firstDrawn: Math.max(0, Math.floor(n - 1 - m.lag - pw / step - 1e-6) - 1),
     }
   }, [])
 
@@ -157,8 +162,7 @@ export function StreamChart({
     const m = motion.current
     if (d.width <= 0 || !d.times.length) return
     const g = geometry()
-    // One extra point past each edge keeps the curve's shape continuous as it scrolls.
-    const first = Math.max(0, g.firstVisible - 1)
+    const first = g.firstDrawn
     const xs: number[] = []
     for (let i = first; i < g.n; i++) xs.push(g.x(i))
     const edge = Math.min(g.pw, xs[xs.length - 1])

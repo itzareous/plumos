@@ -4,7 +4,7 @@ import { photoTone, usePhotoUrl, type Photo } from '@/lib/photos'
 import { cn } from '@/lib/cn'
 
 const Thumb = memo(function Thumb({ photo, active, size, onClick }: { photo: Photo; active: boolean; size: number; onClick: () => void }) {
-  const url = usePhotoUrl(photo, 'thumb')
+  const url = usePhotoUrl(photo, 'thumb', true, true)
   return (
     <motion.button
       layout="position"

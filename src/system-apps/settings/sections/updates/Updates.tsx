@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { CircleCheck, Download, HardDrive, LayoutGrid, Monitor, Users } from 'lucide-react'
+import { CircleCheck, HardDrive, LayoutGrid, Monitor, RefreshCw, Users } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Card, Row, Switch } from '@/components/ui/controls'
 import { formatRelativeDate } from '@/lib/format'
@@ -69,7 +69,7 @@ export function Updates() {
           <Button
             onClick={() => setState('checking')}
             disabled={state === 'checking'}
-            icon={state === 'checking' ? <span className="size-3.5 animate-spin rounded-full border-2 border-white/25 border-t-white" /> : <Download size={15} />}
+            icon={state === 'checking' ? <span className="size-3.5 animate-spin rounded-full border-2 border-white/25 border-t-white" /> : <RefreshCw size={15} />}
             className="max-sm:w-full"
           >
             {state === 'checking' ? 'Checking…' : 'Check for updates'}

@@ -3,9 +3,9 @@
  *
  * Every demo photo is painted on a canvas from its seed, so the library looks
  * lived-in without shipping a single image. Painting is deterministic and
- * resolution independent: a seed renders the same picture as a 300px
- * thumbnail or a 1600px viewer image. Thumbnails are painted lazily in idle
- * time and cached as object URLs.
+ * resolution independent: a seed renders the same picture as a 400px
+ * thumbnail or a 1600px viewer image. Thumbnails are painted lazily, a few per
+ * frame, and cached as object URLs.
  */
 import { useEffect, useState, type RefObject } from 'react'
 
@@ -2153,13 +2153,15 @@ interface Job {
   listeners: Set<Listener>
 }
 
-const THUMB_SHORT = 300
+const THUMB_SHORT = 400
 const FULL_LONG = 1600
 const thumbs = new Map<string, string>()
 const fulls = new Map<string, string>()
 const queue = new Map<string, Job>()
+/** Jobs someone is looking at right now (the viewer, a progress strip): painted before the grid's. */
+const urgent = new Map<string, Job>()
 const inflight = new Map<string, Job>()
-let idleScheduled = false
+let scheduled = false
 
 const keyOf = (p: Photo, size: PhotoSize) => `${p.id}:${size}`
 const cacheFor = (size: PhotoSize) => (size === 'thumb' ? thumbs : fulls)
@@ -2177,11 +2179,12 @@ export function peekPhotoUrl(p: Photo, size: PhotoSize): string | null {
   return cacheFor(size).get(p.id) ?? null
 }
 
-type IdleDeadline = { timeRemaining(): number; didTimeout: boolean }
-const requestIdle: (cb: (d: IdleDeadline) => void) => void =
-  typeof window !== 'undefined' && 'requestIdleCallback' in window
-    ? (cb) => window.requestIdleCallback(cb, { timeout: 180 })
-    : (cb) => setTimeout(() => cb({ timeRemaining: () => 8, didTimeout: true }), 24)
+/** Runs `cb` just after the next frame is on screen, so work fits in the gap before the one after. */
+const afterPaint = (cb: () => void) =>
+  typeof requestAnimationFrame === 'function' ? requestAnimationFrame(() => setTimeout(cb, 0)) : setTimeout(cb, 16)
+
+/** Main-thread time spent painting thumbnails per frame. */
+const SLICE_MS = 7
 
 function canvasToUrl(cv: HTMLCanvasElement, type = 'image/jpeg'): Promise<string> {
   return new Promise((resolve) => {
@@ -2254,40 +2257,50 @@ function run(job: Job) {
   void canvasToUrl(cv, job.photo.scene === 'screenshot' ? 'image/png' : 'image/jpeg').then((url) => finish(job, url))
 }
 
-function pump(deadline: IdleDeadline) {
-  idleScheduled = false
+/**
+ * Paints queued thumbnails in small time slices, one slice per frame, so the
+ * grid fills in quickly without ever blocking scrolling for long.
+ */
+function pump() {
+  scheduled = false
+  const end = performance.now() + SLICE_MS
   let done = 0
-  while (queue.size && (done < 2 || deadline.timeRemaining() > 6)) {
-    const [key, job] = queue.entries().next().value as [string, Job]
-    queue.delete(key)
+  while ((urgent.size || queue.size) && (done === 0 || performance.now() < end)) {
+    const from = urgent.size ? urgent : queue
+    const [key, job] = from.entries().next().value as [string, Job]
+    from.delete(key)
     run(job)
     done++
-    if (!deadline.didTimeout && deadline.timeRemaining() <= 6 && done >= 1) break
   }
-  if (queue.size) scheduleIdle()
+  if (urgent.size || queue.size) schedule()
 }
 
-function scheduleIdle() {
-  if (idleScheduled) return
-  idleScheduled = true
-  requestIdle(pump)
+function schedule() {
+  if (scheduled) return
+  scheduled = true
+  afterPaint(pump)
 }
 
 /**
- * Asks for a rendered photo. Thumbnails are painted in idle time; full-size
+ * Asks for a rendered photo. Thumbnails are painted between frames; full-size
  * renders start right away. Returns an unsubscribe function, which also
  * drops the job if nobody else is waiting for it.
  */
-export function requestPhotoUrl(p: Photo, size: PhotoSize, listener: Listener): () => void {
+export function requestPhotoUrl(p: Photo, size: PhotoSize, listener: Listener, priority = false): () => void {
   const direct = peekPhotoUrl(p, size)
   if (direct) {
     listener(direct)
     return () => {}
   }
   const key = keyOf(p, size)
-  const existing = inflight.get(key) ?? queue.get(key)
+  const waiting = urgent.get(key) ?? queue.get(key)
+  const existing = inflight.get(key) ?? waiting
   if (existing) {
     existing.listeners.add(listener)
+    if (priority && waiting && queue.get(key) === waiting) {
+      queue.delete(key)
+      urgent.set(key, waiting)
+    }
     return () => existing.listeners.delete(listener)
   }
   const job: Job = { key, photo: p, size, listeners: new Set([listener]) }
@@ -2295,22 +2308,27 @@ export function requestPhotoUrl(p: Photo, size: PhotoSize, listener: Listener): 
     inflight.set(key, job)
     setTimeout(() => run(job), 0)
   } else {
-    queue.set(key, job)
-    scheduleIdle()
+    ;(priority ? urgent : queue).set(key, job)
+    schedule()
   }
   return () => {
     job.listeners.delete(listener)
-    if (!job.listeners.size && queue.get(key) === job) queue.delete(key)
+    if (job.listeners.size) return
+    if (queue.get(key) === job) queue.delete(key)
+    if (urgent.get(key) === job) urgent.delete(key)
   }
 }
 
 /** Resolves once the image is ready. */
-export function loadPhotoUrl(p: Photo, size: PhotoSize): Promise<string> {
-  return new Promise((resolve) => requestPhotoUrl(p, size, resolve))
+export function loadPhotoUrl(p: Photo, size: PhotoSize, priority = false): Promise<string> {
+  return new Promise((resolve) => requestPhotoUrl(p, size, resolve, priority))
 }
 
-/** A rendered URL for `photo`, or null while it paints. Pass `enabled=false` to hold off (e.g. offscreen). */
-export function usePhotoUrl(photo: Photo | null | undefined, size: PhotoSize, enabled = true): string | null {
+/**
+ * A rendered URL for `photo`, or null while it paints. Pass `enabled=false` to
+ * hold off (e.g. offscreen) and `priority` to jump the queue.
+ */
+export function usePhotoUrl(photo: Photo | null | undefined, size: PhotoSize, enabled = true, priority = false): string | null {
   const key = photo ? keyOf(photo, size) : ''
   const [state, setState] = useState<{ key: string; url: string | null }>(() => ({
     key,
@@ -2318,9 +2336,9 @@ export function usePhotoUrl(photo: Photo | null | undefined, size: PhotoSize, en
   }))
   useEffect(() => {
     if (!photo || !enabled) return
-    return requestPhotoUrl(photo, size, (url) => setState({ key, url }))
+    return requestPhotoUrl(photo, size, (url) => setState({ key, url }), priority)
     // The photo's identity is captured by `key`.
-  }, [key, enabled]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [key, enabled, priority]) // eslint-disable-line react-hooks/exhaustive-deps
   if (state.key === key) return state.url
   return photo ? peekPhotoUrl(photo, size) : null
 }

@@ -30,14 +30,14 @@ export function DetailView({ appId }: { appId: string }) {
       <header className="relative flex items-center gap-5 sm:items-start sm:gap-8">
         <AppIcon icon={app.icon} size={wide ? 136 : 92} />
         <div className="min-w-0 flex-1 sm:pt-1.5">
-          <div className="flex items-center gap-2">
-            <h2 className="truncate text-[26px] leading-tight font-bold tracking-[-0.025em] sm:text-[38px]">{app.name}</h2>
+          <h2 className="text-[26px] leading-[1.15] font-bold tracking-[-0.025em] break-words sm:text-[38px]">
+            {app.name}
             {app.isNew && (
-              <span className="shrink-0 rounded-full bg-white/12 px-2 py-0.5 text-[10.5px] font-bold tracking-wider text-white/85 uppercase">
+              <span className="ml-2 inline-block translate-y-[-0.2em] rounded-full bg-white/12 px-2 py-0.5 align-middle text-[10.5px] font-bold tracking-wider text-white/85 uppercase">
                 New
               </span>
             )}
-          </div>
+          </h2>
           <p className="mt-0.5 line-clamp-2 text-[15px] text-white/65 sm:mt-1 sm:text-[18px]">{app.tagline}</p>
           <p className="mt-1.5 flex flex-wrap items-center gap-x-1.5 text-[13px] text-white/45 sm:mt-2">
             <span>{app.developer}</span>

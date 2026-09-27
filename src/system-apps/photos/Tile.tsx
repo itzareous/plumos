@@ -1,4 +1,4 @@
-import { memo, useContext, useEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react'
+import { memo, useContext, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react'
 import { Check, Heart, Play } from 'lucide-react'
 import { photoTone, useNearViewport, usePhotoUrl, type Photo } from '@/lib/photos'
 import { cn } from '@/lib/cn'
@@ -15,7 +15,7 @@ export interface TileProps {
   selecting: boolean
   selected: boolean
   hidden: boolean
-  /** Animate position changes, e.g. while new photos arrive at the top. */
+  /** Animate position changes, e.g. while new photos arrive at the top or after a delete. */
   flowing: boolean
   showFavorite: boolean
   badge?: (p: Photo) => ReactNode
@@ -52,6 +52,23 @@ export const Tile = memo(function Tile({
   const url = usePhotoUrl(photo, 'thumb', near)
   const [loaded, setLoaded] = useState(false)
 
+  // While photos arrive or leave, tiles glide to their new slot. A tile that
+  // wraps onto another row slides in from the side instead of sweeping across.
+  const pos = useRef<{ x: number; y: number } | null>(null)
+  useLayoutEffect(() => {
+    const prev = pos.current
+    pos.current = { x, y }
+    const el = ref.current
+    if (!prev || !el || !flowing || (prev.x === x && prev.y === y)) return
+    const to = `translate3d(${x}px, ${y}px, 0)`
+    const timing = { duration: 460, easing: 'cubic-bezier(0.32, 0.72, 0, 1)' }
+    if (prev.y === y) el.animate([{ transform: `translate3d(${prev.x}px, ${y}px, 0)` }, { transform: to }], timing)
+    else {
+      const from = `translate3d(${x + (prev.y < y ? -1 : 1) * size * 0.5}px, ${y}px, 0)`
+      el.animate([{ transform: from, opacity: 0 }, { transform: to, opacity: 1 }], timing)
+    }
+  }, [x, y, flowing, size])
+
   // New arrivals pop in; everything else is already there.
   useEffect(() => {
     if (!photo.addedAt || Date.now() - photo.addedAt > APPEAR_WINDOW) return
@@ -77,7 +94,6 @@ export const Tile = memo(function Tile({
         width: size,
         height: size,
         transform: `translate3d(${x}px, ${y}px, 0)`,
-        transition: flowing ? 'transform 480ms cubic-bezier(0.32, 0.72, 0, 1)' : undefined,
         visibility: hidden ? 'hidden' : undefined,
       }}
     >

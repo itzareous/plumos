@@ -53,10 +53,10 @@ export function TopBar({
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <BackupPill onClick={onBackup} className="hidden sm:inline-flex" />
+          <BackupPill onClick={onBackup} className="max-sm:hidden" />
           {backupIdle && (
             <>
-              <Button size="sm" icon={<Smartphone size={15} />} onClick={onBackup} className="hidden md:inline-flex">
+              <Button size="sm" icon={<Smartphone size={15} />} onClick={onBackup} className="max-md:hidden">
                 Back Up Phone
               </Button>
               <IconButton label="Back up your phone" onClick={onBackup} className="bg-white/10 md:hidden">
@@ -64,7 +64,7 @@ export function TopBar({
               </IconButton>
             </>
           )}
-          <Button size="sm" icon={<Plus size={16} />} onClick={onImport} className="hidden sm:inline-flex" aria-haspopup="menu">
+          <Button size="sm" icon={<Plus size={16} />} onClick={onImport} className="max-sm:hidden" aria-haspopup="menu">
             Import
           </Button>
           <IconButton label="Import" onClick={onImport} className="bg-white/10 sm:hidden" aria-haspopup="menu">

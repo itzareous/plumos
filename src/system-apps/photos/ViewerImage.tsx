@@ -36,7 +36,7 @@ interface Props {
 }
 
 export function ViewerImage({ photo, target, origin, enter, closing, closeTo, dragY, playing, onTogglePlay, onSwipe, onDismiss, onCloseDone }: Props) {
-  const thumb = usePhotoUrl(photo, 'thumb')
+  const thumb = usePhotoUrl(photo, 'thumb', true, true)
   // Paint the big version once the fly-in has mostly settled, so it doesn't stutter.
   const [wantFull, setWantFull] = useState(false)
   useEffect(() => {

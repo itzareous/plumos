@@ -1,6 +1,6 @@
 import type { MouseEvent, ReactNode } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { FolderMinus, FolderPlus, Heart, Trash2, Users, X } from 'lucide-react'
+import { FolderMinus, FolderPlus, Heart, RotateCcw, Trash2, Users, X } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { cn } from '@/lib/cn'
 import { plural } from './format'
@@ -19,7 +19,7 @@ function Action({ label, icon, onClick, danger, disabled }: { label: string; ico
       )}
     >
       {icon}
-      <span className="hidden lg:inline">{label}</span>
+      <span className="hidden whitespace-nowrap lg:inline">{label}</span>
     </button>
   )
 }
@@ -39,6 +39,7 @@ export function SelectionBar({
   onRemoveFromAlbum,
   onShare,
   onDelete,
+  bin,
 }: {
   open: boolean
   count: number
@@ -53,6 +54,8 @@ export function SelectionBar({
   onRemoveFromAlbum: () => void
   onShare: () => void
   onDelete: () => void
+  /** In Recently Deleted the only choices are to recover or to delete for good. */
+  bin?: { onRecover: () => void; onPurge: () => void }
 }) {
   const none = count === 0
   return (
@@ -80,7 +83,12 @@ export function SelectionBar({
             {none ? 'Select items' : `${plural(count, 'item')}`}
           </span>
           <span className="mx-1 h-6 w-px bg-white/10" />
-          {targetAlbum ? (
+          {bin ? (
+            <>
+              <Action label="Recover" disabled={none} onClick={bin.onRecover} icon={<RotateCcw size={18} />} />
+              <Action label="Delete Permanently" danger disabled={none} onClick={bin.onPurge} icon={<Trash2 size={18} />} />
+            </>
+          ) : targetAlbum ? (
             <Button variant="primary" size="sm" disabled={none} onClick={onAddToTarget} className="mx-1 max-w-[220px]">
               <span className="truncate">Add to “{targetAlbum}”</span>
             </Button>

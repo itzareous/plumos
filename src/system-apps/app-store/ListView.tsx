@@ -71,9 +71,7 @@ export function SearchView({ query, results }: { query: string; results: AppInfo
         <p className="mt-1.5 max-w-[340px] text-[14px] text-white/50">
           Check the spelling, try something broader like “photos” or “vpn”, or browse a category.
         </p>
-        <div className="mt-6 w-full">
-          <CategoryPills className="justify-start sm:justify-center" />
-        </div>
+        <CategoryPills wrap className="mt-6 max-w-[720px]" />
       </div>
     )
   }

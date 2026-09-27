@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { CheckCircle2, HardDrive, Usb } from 'lucide-react'
-import { OLD_DRIVE_COUNT, photoTone, usePhotoUrl, type Photo } from '@/lib/photos'
+import { OLD_DRIVE_COUNT, loadPhotoUrl, photoTone, usePhotoUrl, type Photo } from '@/lib/photos'
 import { formatBytes } from '@/lib/format'
 import { Button } from '@/components/ui/Button'
 import { ProgressBar } from '@/components/ui/controls'
@@ -12,20 +12,58 @@ import { Dialog, DialogFooter } from './Dialog'
 import { DriveArt } from './Illustrations'
 import { count } from './format'
 
-function MiniThumb({ photo }: { photo: Photo }) {
-  const url = usePhotoUrl(photo, 'thumb')
+const STRIP = 8
+const STEP_MS = 380
+
+/** A photo in the "just imported" strip. Its thumbnail is ready before it's added, so it lands fully painted. */
+function StripThumb({ photo }: { photo: Photo }) {
+  const url = usePhotoUrl(photo, 'thumb', true, true)
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, scale: 0.6 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ type: 'spring', stiffness: 420, damping: 30 }}
+      initial={{ opacity: 0, scale: 0.5, x: 12 }}
+      animate={{ opacity: 1, scale: 1, x: 0 }}
+      exit={{ opacity: 0, scale: 0.6 }}
+      transition={{ type: 'spring', stiffness: 380, damping: 32 }}
       className="relative aspect-square overflow-hidden rounded-lg"
       style={{ background: photoTone(photo) }}
     >
       {url && <img src={url} alt="" className="absolute inset-0 h-full w-full object-cover" />}
     </motion.div>
   )
+}
+
+const newestFirst = (list: Photo[]) => [...list].sort((a, b) => (b.addedAt ?? 0) - (a.addedAt ?? 0) || b.date - a.date)
+
+/**
+ * The strip of recently imported photos. While the import runs, the newest
+ * photo joins every few hundred milliseconds (once its thumbnail is painted),
+ * so the strip slides along calmly however fast the copy goes.
+ */
+function useImportStrip(imported: Photo[], active: boolean) {
+  const latest = useRef(imported)
+  latest.current = imported
+  const [shown, setShown] = useState<Photo[]>(() => newestFirst(imported).slice(0, STRIP).reverse())
+  useEffect(() => {
+    if (!active) return
+    let cancelled = false
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const step = async () => {
+      const next = newestFirst(latest.current)[0]
+      if (next) {
+        await loadPhotoUrl(next, 'thumb', true)
+        if (cancelled) return
+        setShown((s) => (s.some((p) => p.id === next.id) ? s : [...s, next].slice(-STRIP)))
+      }
+      timer = setTimeout(() => void step(), STEP_MS)
+    }
+    void step()
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [active])
+  return shown
 }
 
 export function DriveImportDialog({ open, onClose, onViewAlbum }: { open: boolean; onClose: () => void; onViewAlbum: () => void }) {
@@ -37,12 +75,9 @@ export function DriveImportDialog({ open, onClose, onViewAlbum }: { open: boolea
   const start = usePhotos((s) => s.startDriveImport)
   const library = useLibrary()
   const imported = useMemo(() => library.filter((p) => p.source === 'drive'), [library])
-  const latest = useMemo(
-    () => [...imported].sort((a, b) => (b.addedAt ?? 0) - (a.addedAt ?? 0) || a.date - b.date).slice(0, 8),
-    [imported],
-  )
+  const strip = useImportStrip(imported, open && job.status === 'running')
   const ratio = job.total ? job.done / job.total : 0
-  const year = latest[0] ? new Date(latest[0].date).getFullYear() : null
+  const year = strip.length ? new Date(strip[strip.length - 1].date).getFullYear() : null
 
   return (
     <Dialog open={open} onClose={onClose} label="Import from Old Backup Drive">
@@ -143,10 +178,19 @@ export function DriveImportDialog({ open, onClose, onViewAlbum }: { open: boolea
                 </AnimatePresence>
               </div>
               <ProgressBar value={ratio} color={job.status === 'done' ? '#34d399' : 'var(--plumos-accent)'} className="h-2" />
-              <div className="mt-4 grid grid-cols-8 gap-1.5">
-                {latest.map((p) => (
-                  <MiniThumb key={p.id} photo={p} />
-                ))}
+              <div className="relative mt-4">
+                <div className="grid grid-cols-8 gap-1.5" aria-hidden>
+                  {Array.from({ length: STRIP }, (_, i) => (
+                    <div key={i} className="aspect-square rounded-lg bg-white/[0.05]" />
+                  ))}
+                </div>
+                <div className="absolute inset-0 grid grid-cols-8 gap-1.5">
+                  <AnimatePresence mode="popLayout" initial={false}>
+                    {strip.map((p) => (
+                      <StripThumb key={p.id} photo={p} />
+                    ))}
+                  </AnimatePresence>
+                </div>
               </div>
             </div>
           </div>

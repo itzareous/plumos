@@ -95,6 +95,7 @@ function PhoneLayout({
               <div className="flex h-14 shrink-0 items-center px-2 pr-16">
                 <button
                   type="button"
+                  aria-label="Back to Settings"
                   onClick={onBack}
                   className="flex h-9 items-center gap-0.5 rounded-full pr-3 pl-1 text-[16px] font-medium text-accent transition outline-none hover:bg-white/[0.06] focus-visible:ring-2 focus-visible:ring-white/60"
                 >

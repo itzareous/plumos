@@ -1,6 +1,6 @@
-import { memo, useRef, type MouseEvent, type ReactNode } from 'react'
-import { FolderPlus, HardDrive, Heart, Images, Play, Plus, Smartphone, Users } from 'lucide-react'
-import { photoTone, useNearViewport, usePhotoUrl } from '@/lib/photos'
+import { memo, useMemo, useRef, type MouseEvent, type ReactNode } from 'react'
+import { FolderPlus, HardDrive, Heart, Images, Play, Plus, Smartphone, Trash2, Users } from 'lucide-react'
+import { photoTone, useNearViewport, usePhotoUrl, type Photo, type Scene } from '@/lib/photos'
 import { Button } from '@/components/ui/Button'
 import { SectionTitle } from '@/components/ui/controls'
 import { cn } from '@/lib/cn'
@@ -13,16 +13,48 @@ const SMART_ICONS: Record<string, ReactNode> = {
   'old-drive': <HardDrive size={14} />,
   screenshots: <Smartphone size={14} />,
   family: <Users size={14} />,
+  deleted: <Trash2 size={14} />,
+}
+
+/**
+ * Picks a cover for each album, preferring favourites and avoiding a scene
+ * another album already shows, so the grid of covers doesn't repeat itself.
+ */
+const PREFERRED: Partial<Record<string, Scene[]>> = {
+  family: ['family'],
+  favorites: ['sunset', 'aurora', 'lake', 'beach', 'mountains'],
+  videos: ['beach', 'city', 'snow', 'forest', 'lake'],
+}
+
+function pickCovers(albums: AlbumView[]): Map<string, Photo | undefined> {
+  const used = new Set<Scene>()
+  const out = new Map<string, Photo | undefined>()
+  for (const a of albums) {
+    const candidates = a.id === 'screenshots' ? a.photos : a.photos.filter((p) => p.scene !== 'screenshot')
+    const recent = candidates.slice(0, 60)
+    const prefer = PREFERRED[a.id]
+    const cover =
+      (prefer && recent.find((p) => prefer.includes(p.scene) && !used.has(p.scene))) ??
+      recent.find((p) => p.favorite && !used.has(p.scene)) ??
+      recent.find((p) => !used.has(p.scene)) ??
+      candidates[0] ??
+      a.photos[0]
+    if (cover) used.add(cover.scene)
+    out.set(a.id, cover)
+  }
+  return out
 }
 
 const AlbumCard = memo(function AlbumCard({
   album,
+  cover,
   icon,
   emptyText,
   onOpen,
   onMenu,
 }: {
   album: AlbumView
+  cover: Photo | undefined
   icon?: ReactNode
   emptyText: string
   onOpen: (album: AlbumView) => void
@@ -30,7 +62,6 @@ const AlbumCard = memo(function AlbumCard({
 }) {
   const ref = useRef<HTMLButtonElement>(null)
   const near = useNearViewport(ref)
-  const cover = album.photos.find((p) => p.scene !== 'screenshot') ?? album.photos[0]
   const url = usePhotoUrl(cover, 'thumb', near)
   const empty = !album.photos.length
   return (
@@ -81,6 +112,7 @@ export function AlbumsView({
   onNew: () => void
   onMenu: (album: AlbumView, e: MouseEvent<HTMLElement>) => void
 }) {
+  const covers = useMemo(() => pickCovers([...smart, ...mine]), [smart, mine])
   const grid = 'grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6'
   return (
     <div className="scrollbar-thin min-h-0 flex-1 overflow-y-auto px-4 pt-2 pb-32 sm:px-8">
@@ -88,7 +120,7 @@ export function AlbumsView({
         <SectionTitle>Collections</SectionTitle>
         <div className={grid}>
           {smart.map((a) => (
-            <AlbumCard key={a.id} album={a} icon={SMART_ICONS[a.id]} emptyText={a.id === 'old-drive' ? 'Import from drive' : 'Empty'} onOpen={onOpen} />
+            <AlbumCard key={a.id} album={a} cover={covers.get(a.id)} icon={SMART_ICONS[a.id]} emptyText={a.id === 'old-drive' ? 'Import from drive' : 'Empty'} onOpen={onOpen} />
           ))}
         </div>
       </section>
@@ -104,7 +136,7 @@ export function AlbumsView({
         </SectionTitle>
         <div className={grid}>
           {mine.map((a) => (
-            <AlbumCard key={a.id} album={a} emptyText="Empty" onOpen={onOpen} onMenu={onMenu} />
+            <AlbumCard key={a.id} album={a} cover={covers.get(a.id)} emptyText="Empty" onOpen={onOpen} onMenu={onMenu} />
           ))}
           <button type="button" onClick={onNew} className="group min-w-0 text-left outline-none">
             <div className="flex aspect-square items-center justify-center rounded-[18px] border-[1.5px] border-dashed border-white/20 text-white/45 transition duration-300 ease-(--ease-spring) group-hover:scale-[1.025] group-hover:border-white/35 group-hover:text-white/75 group-focus-visible:ring-2 group-focus-visible:ring-white/70">

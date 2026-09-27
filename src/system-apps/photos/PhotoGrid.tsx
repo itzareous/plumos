@@ -128,8 +128,9 @@ export const PhotoGrid = forwardRef<GridHandle, PhotoGridProps>(function PhotoGr
   }, [layout, scrollEl, contentTop, items])
   useEffect(() => {
     const y = scrollTop - contentTop
+    // At the very top there's nothing to hold in place: stay at the top.
     if (y <= 0 || !items.length) {
-      anchor.current = items[0] ? { id: items[0].id, offset: contentTop } : null
+      anchor.current = null
       return
     }
     const g = layout.groups[groupAtY(layout, y)]
@@ -157,9 +158,41 @@ export const PhotoGrid = forwardRef<GridHandle, PhotoGridProps>(function PhotoGr
     return () => scrollEl.removeEventListener('wheel', onWheel)
   }, [scrollEl])
 
-  // Tiles slide along when new photos arrive at the top.
-  const newest = useMemo(() => items.reduce((m, p) => Math.max(m, p.addedAt ?? 0), 0), [items])
-  const flowing = Date.now() - newest < 900
+  // Two-finger pinch on touch screens steps through the zoom levels too.
+  useEffect(() => {
+    if (!scrollEl) return
+    let base = 0
+    const spread = (t: TouchList) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY)
+    const onStart = (e: TouchEvent) => {
+      if (e.touches.length === 2) base = spread(e.touches)
+    }
+    const onMove = (e: TouchEvent) => {
+      if (e.touches.length !== 2 || !base) return
+      e.preventDefault()
+      const ratio = spread(e.touches) / base
+      if (ratio > 1.3 || ratio < 0.77) {
+        latest.current.props.onZoom(ratio > 1 ? 1 : -1)
+        base = spread(e.touches)
+      }
+    }
+    const onEnd = (e: TouchEvent) => {
+      if (e.touches.length < 2) base = 0
+    }
+    scrollEl.addEventListener('touchstart', onStart, { passive: true })
+    scrollEl.addEventListener('touchmove', onMove, { passive: false })
+    scrollEl.addEventListener('touchend', onEnd, { passive: true })
+    scrollEl.addEventListener('touchcancel', onEnd, { passive: true })
+    return () => {
+      scrollEl.removeEventListener('touchstart', onStart)
+      scrollEl.removeEventListener('touchmove', onMove)
+      scrollEl.removeEventListener('touchend', onEnd)
+      scrollEl.removeEventListener('touchcancel', onEnd)
+    }
+  }, [scrollEl])
+
+  // Tiles glide along for a moment after photos arrive or leave (not when zooming).
+  const itemsChangedAt = useMemo(() => Date.now(), [items]) // eslint-disable-line react-hooks/exhaustive-deps
+  const flowing = Date.now() - itemsChangedAt < 900
 
   const scrollTo = useCallback(
     (top: number) => {
@@ -331,13 +364,12 @@ export const PhotoGrid = forwardRef<GridHandle, PhotoGridProps>(function PhotoGr
   const maxScroll = scrollEl ? Math.max(0, contentTop + layout.total - viewH) : 0
 
   return (
-    <div className="relative min-h-0 flex-1">
+    <div className="relative min-h-0 flex-1 overflow-hidden">
       <div
         ref={setScrollEl}
         className="scrollbar-none absolute inset-0 overflow-x-hidden overflow-y-auto overscroll-contain"
-        role="grid"
+        role="region"
         aria-label="Photos"
-        aria-rowcount={items.length}
       >
         <div ref={headerRef}>{header}</div>
         <ScrollRootContext.Provider value={scrollEl}>

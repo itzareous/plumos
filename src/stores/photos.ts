@@ -45,7 +45,10 @@ export const DENSITIES = 4
 
 interface PhotosState {
   added: Photo[]
+  /** Photo id → when it was deleted. Deleted photos wait in Recently Deleted for 30 days. */
   deleted: Record<string, number>
+  /** Demo photos deleted for good. (Added photos are simply dropped from `added`.) */
+  purged: Record<string, true>
   favorites: Record<string, boolean>
   owners: Record<string, 'me' | 'shared'>
   albums: UserAlbum[]
@@ -57,6 +60,8 @@ interface PhotosState {
   setFavorite: (ids: string[], value: boolean) => void
   remove: (ids: string[]) => void
   restore: (ids: string[]) => void
+  /** Deletes for good: gone from Recently Deleted too. */
+  purge: (ids: string[]) => void
   setOwner: (ids: string[], owner: 'me' | 'shared') => void
   createAlbum: (name: string, photoIds?: string[]) => UserAlbum
   addToAlbum: (albumId: string, photoIds: string[]) => void
@@ -90,6 +95,7 @@ export const usePhotos = create<PhotosState>()(
     (set, get) => ({
       added: [],
       deleted: {},
+      purged: {},
       favorites: {},
       owners: {},
       albums: seededAlbums(),
@@ -119,6 +125,25 @@ export const usePhotos = create<PhotosState>()(
           const deleted = { ...s.deleted }
           for (const id of ids) delete deleted[id]
           return { deleted }
+        }),
+
+      purge: (ids) =>
+        set((s) => {
+          const gone = new Set(ids)
+          const deleted = { ...s.deleted }
+          const purged = { ...s.purged }
+          for (const id of ids) {
+            delete deleted[id]
+            purged[id] = true
+          }
+          const dropped = s.added.filter((p) => gone.has(p.id))
+          for (const p of dropped) if (p.url) URL.revokeObjectURL(p.url)
+          return {
+            deleted,
+            purged,
+            added: dropped.length ? s.added.filter((p) => !gone.has(p.id)) : s.added,
+            albums: s.albums.map((a) => (a.photoIds.some((id) => gone.has(id)) ? { ...a, photoIds: a.photoIds.filter((id) => !gone.has(id)) } : a)),
+          }
         }),
 
       setOwner: (ids, owner) =>
@@ -161,7 +186,11 @@ export const usePhotos = create<PhotosState>()(
       restoreAlbum: (album) => set((s) => ({ albums: [album, ...s.albums.filter((a) => a.id !== album.id)] })),
 
       addFiles: async (files) => {
-        const photos = (await Promise.all(files.map((f) => photoFromFile(f)))).filter((p): p is Photo => Boolean(p))
+        const now = Date.now()
+        // Keep the order they were dropped in: the first file shows first.
+        const photos = (await Promise.all(files.map((f) => photoFromFile(f))))
+          .filter((p): p is Photo => Boolean(p))
+          .map((p, i) => ({ ...p, date: now - i * 1000, addedAt: now }))
         if (photos.length) set((s) => ({ added: [...photos, ...s.added] }))
         return photos
       },
@@ -197,7 +226,7 @@ export const usePhotos = create<PhotosState>()(
         let done = 0
         set({ driveImport: { status: 'running', done: 0, total, driveId, driveName } })
         const tick = () => {
-          const batch = photos.slice(done, done + 3).map((p) => ({ ...p, addedAt: Date.now() }))
+          const batch = photos.slice(done, done + 2).map((p) => ({ ...p, addedAt: Date.now() }))
           done += batch.length
           set((s) => ({ added: [...s.added, ...batch], driveImport: { ...s.driveImport, done } }))
           if (done >= photos.length) {
@@ -205,7 +234,7 @@ export const usePhotos = create<PhotosState>()(
             importTimer = null
             return
           }
-          importTimer = setTimeout(tick, 60 + Math.random() * 60)
+          importTimer = setTimeout(tick, 70 + Math.random() * 50)
         }
         if (importTimer) clearTimeout(importTimer)
         importTimer = setTimeout(tick, 500)
@@ -218,6 +247,7 @@ export const usePhotos = create<PhotosState>()(
         // Files from this computer live in object URLs, which don't survive a reload.
         added: s.added.filter((p) => !p.url).map(({ addedAt: _, ...p }) => p),
         deleted: s.deleted,
+        purged: s.purged,
         favorites: s.favorites,
         owners: s.owners,
         albums: s.albums,
@@ -241,8 +271,8 @@ let memo: { keys: unknown[]; value: Photo[] } | null = null
  * and each photo object stays referentially stable while nothing about it
  * changes, so memoised tiles don't re-render.
  */
-export function selectLibrary(s: Pick<PhotosState, 'added' | 'deleted' | 'favorites' | 'owners' | 'albums'>): Photo[] {
-  const keys = [s.added, s.deleted, s.favorites, s.owners, s.albums]
+export function selectLibrary(s: Pick<PhotosState, 'added' | 'deleted' | 'purged' | 'favorites' | 'owners' | 'albums'>): Photo[] {
+  const keys = [s.added, s.deleted, s.purged, s.favorites, s.owners, s.albums]
   if (memo && memo.keys.every((k, i) => k === keys[i])) return memo.value
   const membership = new Map<string, string[]>()
   for (const a of s.albums) {
@@ -254,7 +284,7 @@ export function selectLibrary(s: Pick<PhotosState, 'added' | 'deleted' | 'favori
   }
   const out: Photo[] = []
   const push = (p: Photo) => {
-    if (s.deleted[p.id]) return
+    if (s.deleted[p.id] || s.purged[p.id]) return
     const favorite = s.favorites[p.id] ?? p.favorite
     const owner = s.owners[p.id] ?? p.owner
     const albums = membership.get(p.id) ?? EMPTY
@@ -280,8 +310,24 @@ function sameList(a: string[], b: string[]) {
 
 export const useLibrary = () => usePhotos(selectLibrary)
 
-/** Photos currently in the Recently Deleted bin, newest deletion first. */
-export function selectDeleted(s: Pick<PhotosState, 'added' | 'deleted'>): Photo[] {
+export const KEEP_DELETED_DAYS = 30
+
+let deletedMemo: { keys: unknown[]; value: Photo[] } | null = null
+
+/**
+ * Photos in Recently Deleted, most recently deleted first. Memoised like
+ * `selectLibrary`, so it's safe to use directly as a store selector.
+ */
+export function selectDeleted(s: Pick<PhotosState, 'added' | 'deleted' | 'purged'>): Photo[] {
+  const keys = [s.added, s.deleted, s.purged]
+  if (deletedMemo && deletedMemo.keys.every((k, i) => k === keys[i])) return deletedMemo.value
   const ids = s.deleted
-  return [...s.added, ...demoLibrary()].filter((p) => ids[p.id]).sort((a, b) => ids[b.id] - ids[a.id])
+  const cutoff = Date.now() - KEEP_DELETED_DAYS * 86400e3
+  const value = [...s.added, ...demoLibrary()]
+    .filter((p) => ids[p.id] && ids[p.id] > cutoff && !s.purged[p.id])
+    .sort((a, b) => ids[b.id] - ids[a.id] || b.date - a.date)
+  deletedMemo = { keys, value }
+  return value
 }
+
+export const useDeletedPhotos = () => usePhotos(selectDeleted)

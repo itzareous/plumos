@@ -6,7 +6,16 @@ import { categoryLabel, categoryMeta, categoryOrder } from './data'
 import { useNav } from './nav'
 
 /** Horizontally scrolling category chips. The active one (if any) is highlighted. */
-export function CategoryPills({ active, className }: { active?: AppCategory; className?: string }) {
+export function CategoryPills({
+  active,
+  wrap,
+  className,
+}: {
+  active?: AppCategory
+  /** Wrap onto several centred lines instead of scrolling sideways. */
+  wrap?: boolean
+  className?: string
+}) {
   const nav = useNav()
   const ref = useRef<HTMLDivElement>(null)
 
@@ -22,8 +31,9 @@ export function CategoryPills({ active, className }: { active?: AppCategory; cla
       ref={ref}
       aria-label="Categories"
       className={cn(
-        'scrollbar-none -mx-5 flex gap-2 overflow-x-auto px-5 py-1 sm:-mx-10 sm:px-10',
-        '[mask-image:linear-gradient(90deg,transparent,black_20px,black_calc(100%-28px),transparent)]',
+        wrap
+          ? 'flex flex-wrap justify-center gap-2'
+          : 'scrollbar-none -mx-5 flex gap-2 overflow-x-auto px-5 py-1 sm:-mx-10 sm:px-10 [mask-image:linear-gradient(90deg,transparent,black_20px,black_calc(100%-28px),transparent)]',
         className,
       )}
     >

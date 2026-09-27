@@ -10,6 +10,7 @@ import {
   Maximize2,
   Pencil,
   Plus,
+  RotateCcw,
   Smartphone,
   Trash2,
   Upload,
@@ -20,18 +21,19 @@ import { useContextMenu, type MenuEntry } from '@/components/ui/ContextMenu'
 import { Button } from '@/components/ui/Button'
 import { toast } from '@/stores/toasts'
 import { useSettings } from '@/stores/settings'
-import { useLibrary, usePhotos } from '@/stores/photos'
+import { KEEP_DELETED_DAYS, useDeletedPhotos, useLibrary, usePhotos } from '@/stores/photos'
 import type { SheetProps } from '../registry'
 import { TopBar, type Tab } from './TopBar'
 import { PhotoGrid, type GridHandle } from './PhotoGrid'
 import { AlbumsView } from './AlbumsView'
-import { AlbumHeader, EmptyState, SharedHeader } from './Headers'
+import { AlbumHeader, DeletedHeader, EmptyState, SharedHeader } from './Headers'
 import { SelectionBar } from './SelectionBar'
 import { Viewer } from './Viewer'
 import { toRect, type Rect } from './ViewerImage'
 import { BackupDialog } from './BackupDialog'
 import { DriveImportDialog } from './DriveImportDialog'
 import { NameDialog } from './NameDialog'
+import { ConfirmDialog } from './ConfirmDialog'
 import { DropOverlay } from './DropOverlay'
 import { UndoBar, type UndoAction } from './UndoBar'
 import { Avatar } from './Avatar'
@@ -62,6 +64,9 @@ export default function Photos({ params }: SheetProps) {
   const userName = useSettings((s) => s.userName)
   const userAlbums = usePhotos((s) => s.albums)
   const density = usePhotos((s) => s.density)
+  const importing = usePhotos((s) => s.driveImport.status === 'running')
+  const deletedAt = usePhotos((s) => s.deleted)
+  const deletedPhotos = useDeletedPhotos()
   const store = usePhotos.getState
 
   const [tab, setTab] = useState<Tab>(() => (params.album ? 'albums' : TABS.includes(params.tab as Tab) ? (params.tab as Tab) : 'library'))
@@ -72,13 +77,23 @@ export default function Photos({ params }: SheetProps) {
   const [dialog, setDialog] = useState<DialogKind | null>(null)
   const [pendingIds, setPendingIds] = useState<string[] | null>(null)
   const [undo, setUndo] = useState<UndoAction | null>(null)
+  const [confirmPurge, setConfirmPurge] = useState<string[] | null>(null)
   const gridRef = useRef<GridHandle>(null)
   const fileInput = useRef<HTMLInputElement>(null)
   const menu = useContextMenu()
 
   // ----- Data for each view -----
   const { smart, mine } = useMemo(() => buildAlbums(library, userAlbums), [library, userAlbums])
-  const album = albumId ? ([...smart, ...mine].find((a) => a.id === albumId) ?? null) : null
+  // Recently Deleted sits at the end of the collections while it has something in it.
+  const collections = useMemo<AlbumView[]>(
+    () =>
+      deletedPhotos.length || albumId === 'deleted'
+        ? [...smart, { id: 'deleted', name: 'Recently Deleted', kind: 'smart', photos: deletedPhotos }]
+        : smart,
+    [smart, deletedPhotos, albumId],
+  )
+  const album = albumId ? ([...collections, ...mine].find((a) => a.id === albumId) ?? null) : null
+  const inBin = tab === 'albums' && album?.id === 'deleted'
   const own = useMemo(() => library.filter((p) => p.owner === 'me'), [library])
   const favorites = useMemo(() => library.filter((p) => p.favorite), [library])
   const shared = useMemo(() => library.filter((p) => p.owner === 'shared'), [library])
@@ -94,7 +109,7 @@ export default function Photos({ params }: SheetProps) {
         : tab === 'shared'
           ? { key: `shared-${who}`, items: sharedShown, grouping: 'month' }
           : album
-            ? { key: `album-${album.id}`, items: album.photos, grouping: album.photos.length > 48 ? 'month' : 'none' }
+            ? { key: `album-${album.id}`, items: album.photos, grouping: album.photos.length > 48 && !inBin ? 'month' : 'none' }
             : null
 
   const selection = useSelection(view?.items ?? [])
@@ -122,6 +137,15 @@ export default function Photos({ params }: SheetProps) {
       pushUndo(`Deleted ${plural(ids.length, 'item')}`, () => store().restore(ids))
     },
     [pushUndo, store],
+  )
+
+  const recover = useCallback(
+    (ids: string[]) => {
+      if (!ids.length) return
+      store().restore(ids)
+      toast(`Recovered ${plural(ids.length, 'item')}`, { description: 'Back in your library', icon: <RotateCcw size={18} className="text-accent" /> })
+    },
+    [store],
   )
 
   const toggleFavorite = useCallback(
@@ -236,14 +260,14 @@ export default function Photos({ params }: SheetProps) {
   }, [params.photoId, byId, shared, own, openViewer])
 
   // ----- Keyboard -----
-  const keyState = useRef({ viewer, dialog, selecting, selected, tab, albumId, view })
-  keyState.current = { viewer, dialog, selecting, selected, tab, albumId, view }
+  const keyState = useRef({ viewer, dialog, selecting, selected, tab, albumId, view, inBin, confirmPurge })
+  keyState.current = { viewer, dialog, selecting, selected, tab, albumId, view, inBin, confirmPurge }
   const actions = useRef({ deletePhotos, clear: selection.clear, selectAll: selection.selectAll })
   actions.current = { deletePhotos, clear: selection.clear, selectAll: selection.selectAll }
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const s = keyState.current
-      if (s.viewer || s.dialog || e.defaultPrevented) return
+      if (s.viewer || s.dialog || s.confirmPurge || e.defaultPrevented) return
       if ((e.target as HTMLElement | null)?.closest('input, textarea, [contenteditable="true"]')) return
       const mod = e.metaKey || e.ctrlKey
       if (mod && (e.key === '=' || e.key === '+')) {
@@ -268,8 +292,11 @@ export default function Photos({ params }: SheetProps) {
         }
       } else if ((e.key === 'Delete' || e.key === 'Backspace') && s.selecting && s.selected.size) {
         e.preventDefault()
-        actions.current.deletePhotos([...s.selected])
-        actions.current.clear()
+        if (s.inBin) setConfirmPurge([...s.selected])
+        else {
+          actions.current.deletePhotos([...s.selected])
+          actions.current.clear()
+        }
       }
     }
     window.addEventListener('keydown', onKey, { capture: true })
@@ -290,10 +317,19 @@ export default function Photos({ params }: SheetProps) {
   const onTileMenu = useCallback(
     (photo: Photo, e: MouseEvent<HTMLElement>) => {
       const rect = (e.currentTarget.parentElement ?? e.currentTarget).getBoundingClientRect()
-      const group = selected.has(photo.id) && selected.size > 1 ? selectedPhotos : [photo]
+      const inGroup = selected.has(photo.id) && selected.size > 1
+      const group = inGroup ? (keyState.current.inBin ? (keyState.current.view?.items ?? []).filter((p) => selected.has(p.id)) : selectedPhotos) : [photo]
       const ids = group.map((p) => p.id)
       const many = group.length > 1
       const { clientX: x, clientY: y } = e
+      if (keyState.current.inBin) {
+        menu.handler(() => [
+          { label: many ? `Recover ${group.length} Items` : 'Recover', icon: <RotateCcw size={15} />, onSelect: () => (recover(ids), selection.clear()) },
+          'separator',
+          { label: 'Delete Permanently…', icon: <Trash2 size={15} />, danger: true, onSelect: () => setConfirmPurge(ids) },
+        ])(e)
+        return
+      }
       menu.handler(() => [
         ...(!many
           ? [{ label: 'Open', icon: <Maximize2 size={15} />, onSelect: () => openViewer(photo, rect, keyState.current.view?.items ?? [photo]) }]
@@ -319,7 +355,7 @@ export default function Photos({ params }: SheetProps) {
         },
       ])(e)
     },
-    [selected, selectedPhotos, menu, openViewer, toggleFavorite, albumMenu, shareToggle, selecting, selection, deletePhotos],
+    [selected, selectedPhotos, menu, openViewer, toggleFavorite, albumMenu, shareToggle, selecting, selection, deletePhotos, recover],
   )
 
   const onAlbumMenu = useCallback(
@@ -367,7 +403,12 @@ export default function Photos({ params }: SheetProps) {
   const videos = own.filter((p) => p.video).length
   const subtitle =
     tab === 'library'
-      ? `${userName ? `${userName}’s` : 'Your'} library · ${plural(own.length - videos, 'photo')}, ${plural(videos, 'video')}`
+      ? (
+          <>
+            <span className="max-sm:hidden">{userName ? `${userName}’s` : 'Your'} library · </span>
+            {plural(own.length - videos, 'photo')}, {plural(videos, 'video')}
+          </>
+        )
       : tab === 'favorites'
         ? plural(favorites.length, 'favorite')
         : tab === 'albums'
@@ -383,6 +424,18 @@ export default function Photos({ params }: SheetProps) {
     [people],
   )
 
+  const binBadge = useCallback(
+    (p: Photo) => {
+      const left = Math.max(1, KEEP_DELETED_DAYS - Math.floor((Date.now() - (deletedAt[p.id] ?? Date.now())) / 86400e3))
+      return (
+        <span className="absolute top-1.5 right-1.5 rounded-full bg-black/45 px-1.5 py-px text-[10.5px] font-semibold text-white tabular-nums backdrop-blur-sm">
+          {plural(left, 'day')}
+        </span>
+      )
+    },
+    [deletedAt],
+  )
+
   const renderGrid = () => {
     if (!view) return null
     let header = null
@@ -396,6 +449,17 @@ export default function Photos({ params }: SheetProps) {
           body="Photos added to the family space by this person will show up here."
         />
       )
+    } else if (inBin && album) {
+      header = (
+        <DeletedHeader
+          count={album.photos.length}
+          days={KEEP_DELETED_DAYS}
+          onBack={() => (selection.clear(), setAlbumId(null))}
+          onRecoverAll={() => recover(album.photos.map((p) => p.id))}
+          onDeleteAll={() => setConfirmPurge(album.photos.map((p) => p.id))}
+        />
+      )
+      empty = <EmptyState icon={<Trash2 size={28} />} title="Nothing here" body={`Photos and videos you delete wait here for ${KEEP_DELETED_DAYS} days, in case you change your mind.`} />
     } else if (tab === 'albums' && album) {
       const isUser = album.kind === 'user'
       header = (
@@ -403,7 +467,7 @@ export default function Photos({ params }: SheetProps) {
           album={album}
           onBack={() => (selection.clear(), setAlbumId(null))}
           onAddPhotos={isUser ? () => startTarget({ kind: 'album', id: album.id, name: album.name }) : undefined}
-          onImport={album.id === 'old-drive' && album.photos.length > 0 ? () => setDialog('drive') : undefined}
+          onImport={album.id === 'old-drive' && importing ? () => setDialog('drive') : undefined}
           onMore={isUser ? (e) => onAlbumMenu(album, e) : undefined}
         />
       )
@@ -461,10 +525,10 @@ export default function Photos({ params }: SheetProps) {
         hiddenId={viewer ? viewer.ids[viewer.index] ?? null : null}
         header={header}
         empty={empty}
-        badge={tab === 'shared' ? badge : undefined}
-        showFavorite={tab !== 'favorites'}
+        badge={tab === 'shared' ? badge : inBin ? binBadge : undefined}
+        showFavorite={tab !== 'favorites' && !inBin}
         scrollKey={view.key}
-        onOpen={openViewer}
+        onOpen={inBin ? (p, _rect, list) => selection.toggle(p, list.indexOf(p), { shift: false }) : openViewer}
         onSelect={selection.toggle}
         onSelectMany={selection.setMany}
         onMenu={onTileMenu}
@@ -504,7 +568,7 @@ export default function Photos({ params }: SheetProps) {
           renderGrid()
         ) : (
           <AlbumsView
-            smart={smart}
+            smart={collections}
             mine={mine}
             onOpen={(a) => (a.id === 'old-drive' && !a.photos.length ? setDialog('drive') : setAlbumId(a.id))}
             onNew={() => {
@@ -548,6 +612,17 @@ export default function Photos({ params }: SheetProps) {
           deletePhotos([...selected])
           selection.clear()
         }}
+        bin={
+          inBin
+            ? {
+                onRecover: () => {
+                  recover([...selected])
+                  selection.clear()
+                },
+                onPurge: () => setConfirmPurge([...selected]),
+              }
+            : undefined
+        }
       />
 
       <DropOverlay visible={dragging} />
@@ -602,6 +677,21 @@ export default function Photos({ params }: SheetProps) {
         confirmLabel="Rename"
         onClose={() => setDialog(null)}
         onSubmit={(name) => renaming && store().renameAlbum(renaming.id, name)}
+      />
+
+      <ConfirmDialog
+        open={Boolean(confirmPurge?.length)}
+        icon={<Trash2 size={22} />}
+        title={confirmPurge?.length === 1 ? 'Delete this item for good?' : `Delete ${plural(confirmPurge?.length ?? 0, 'item')} for good?`}
+        body="They’ll be removed from this server and from every device that backs up to it. This can’t be undone."
+        confirmLabel="Delete Permanently"
+        onClose={() => setConfirmPurge(null)}
+        onConfirm={() => {
+          const ids = confirmPurge ?? []
+          store().purge(ids)
+          selection.clear()
+          toast(`Deleted ${plural(ids.length, 'item')} for good`, { icon: <Trash2 size={18} className="text-red-300" /> })
+        }}
       />
 
       <UndoBar action={undo} onDismiss={dismissUndo} />

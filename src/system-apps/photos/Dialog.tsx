@@ -101,5 +101,14 @@ export function Dialog({
 }
 
 export function DialogFooter({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn('flex flex-wrap items-center justify-end gap-2.5 border-t border-white/[0.07] px-6 py-4 sm:px-7', className)}>{children}</div>
+  return (
+    <div
+      className={cn(
+        'flex flex-wrap items-center justify-end gap-2.5 border-t border-white/[0.07] px-6 py-4 max-sm:flex-col-reverse max-sm:items-stretch sm:px-7',
+        className,
+      )}
+    >
+      {children}
+    </div>
+  )
 }

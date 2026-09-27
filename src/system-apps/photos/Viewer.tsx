@@ -48,7 +48,7 @@ function fit(aspect: number, s: { x: number; y: number; w: number; h: number }):
 }
 
 function Ambient({ photo }: { photo: Photo }) {
-  const url = usePhotoUrl(photo, 'thumb')
+  const url = usePhotoUrl(photo, 'thumb', true, true)
   return (
     <AnimatePresence initial={false}>
       {url && (

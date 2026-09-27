@@ -130,7 +130,7 @@ export function YearScrubber({ layout, items, contentTop, scrollTop, maxScroll, 
             <span
               key={y.year}
               className={cn(
-                'pointer-events-none absolute right-2 -translate-y-1/2 text-[11px] font-semibold tabular-nums transition-colors',
+                'pointer-events-none absolute right-[27px] -translate-y-1/2 text-[11px] font-semibold tabular-nums transition-colors',
                 layout.groups[current]?.year === y.year
                   ? 'text-white'
                   : 'text-white/38 group-hover/scrub:text-white/60',

@@ -1,64 +1,13 @@
 // "Aurora" — green curtains of light over snowy peaks, mirrored in a
 // still mountain lake on a clear, starry night.
 import {
-  W, H, SCALE, image, eachPixel, toMarkup, perlin, fbm, ridged, blur, hex, clamp, smoothstep, mix, rng,
+  W, H, image, eachPixel, toMarkup, perlin, fbm, ridged, blur, hex, clamp, smoothstep, mix, rng, profile, at, roughen,
 } from './raster.mjs'
 
 const SHORE = 1062 // waterline, in design px
 const img = image()
 const { w, h } = img
 const K = W / w // design px per pixel
-
-// ---------- 1D profiles ----------
-
-/** Catmull-Rom through [x, y] points sorted by x, sampled every design px. */
-function profile(points, pad = 400) {
-  const out = new Float32Array(W + pad * 2)
-  let seg = 0
-  for (let i = 0; i < out.length; i++) {
-    const x = i - pad
-    while (seg < points.length - 2 && x > points[seg + 1][0]) seg++
-    const p1 = points[seg]
-    const p2 = points[seg + 1]
-    const p0 = points[Math.max(0, seg - 1)]
-    const p3 = points[Math.min(points.length - 1, seg + 2)]
-    const t = clamp((x - p1[0]) / (p2[0] - p1[0]))
-    const t2 = t * t
-    const t3 = t2 * t
-    out[i] =
-      0.5 *
-      (2 * p1[1] +
-        (-p0[1] + p2[1]) * t +
-        (2 * p0[1] - 5 * p1[1] + 4 * p2[1] - p3[1]) * t2 +
-        (-p0[1] + 3 * p1[1] - 3 * p2[1] + p3[1]) * t3)
-  }
-  out.pad = pad
-  return out
-}
-
-const at = (prof, x) => {
-  const f = clamp(x + prof.pad, 0, prof.length - 2)
-  const i = Math.floor(f)
-  return prof[i] + (prof[i + 1] - prof[i]) * (f - i)
-}
-
-/** Adds sharp, jagged detail (sharp peaks, rounder saddles) to a ridge profile. */
-function roughen(prof, seed, amp, base = 0.006, octaves = 7) {
-  const n = perlin(seed)
-  for (let i = 0; i < prof.length; i++) {
-    const x = i - prof.pad
-    let a = amp
-    let f = base
-    let d = 0
-    for (let o = 0; o < octaves; o++) {
-      d += a * (0.5 - Math.abs(n(x * f, o * 7.3)))
-      a *= 0.5
-      f *= 2.03
-    }
-    prof[i] -= d
-  }
-  return prof
-}
 
 const nearTop = roughen(
   profile([
@@ -371,5 +320,4 @@ eachPixel(img, (x, y, i) => {
   img.b[i] = WATER[2] + mix(sample(refl.b, x, sy), sample(soft.b, x, sy), m) * k
 })
 
-void SCALE
 export default toMarkup(img, { grain: 3, seed: 3 })

@@ -71,13 +71,13 @@ export function StickyHeader({
       aria-hidden={!visible}
     >
       <div
-        className="absolute -inset-x-8 top-0 -bottom-5"
+        className="absolute -inset-x-8 top-0 -bottom-9"
         style={{
-          background: 'linear-gradient(180deg, rgb(20 20 28 / 0.86) 0%, rgb(20 20 28 / 0.72) 70%, rgb(20 20 28 / 0) 100%)',
-          backdropFilter: 'blur(18px)',
-          WebkitBackdropFilter: 'blur(18px)',
-          maskImage: 'linear-gradient(180deg, black 72%, transparent)',
-          WebkitMaskImage: 'linear-gradient(180deg, black 72%, transparent)',
+          background: 'linear-gradient(180deg, rgb(20 20 28 / 0.88) 0%, rgb(20 20 28 / 0.7) 55%, rgb(20 20 28 / 0) 100%)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          maskImage: 'linear-gradient(180deg, black 50%, rgb(0 0 0 / 0.6) 72%, transparent)',
+          WebkitMaskImage: 'linear-gradient(180deg, black 50%, rgb(0 0 0 / 0.6) 72%, transparent)',
         }}
       />
       <div className="relative" style={{ height: HEADER_H }}>

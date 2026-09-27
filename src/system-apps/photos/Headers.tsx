@@ -1,5 +1,5 @@
 import type { MouseEvent, ReactNode } from 'react'
-import { ChevronLeft, Ellipsis, ImagePlus, Plus } from 'lucide-react'
+import { ChevronLeft, Ellipsis, HardDrive, Plus, RotateCcw, Trash2 } from 'lucide-react'
 import type { Photo } from '@/lib/photos'
 import { Button, IconButton } from '@/components/ui/Button'
 import { cn } from '@/lib/cn'
@@ -21,18 +21,12 @@ export function AlbumHeader({
   onBack: () => void
   onAddPhotos?: () => void
   onMore?: (e: MouseEvent<HTMLButtonElement>) => void
+  /** Shown while photos are still arriving from a drive: reopens the import. */
   onImport?: () => void
 }) {
   return (
     <div className={cn(pad, 'pt-1 pb-4')}>
-      <button
-        type="button"
-        onClick={onBack}
-        className="-ml-2 flex items-center gap-0.5 rounded-full py-1 pr-3 pl-1.5 text-[14px] font-medium text-accent transition outline-none hover:bg-white/[0.07] focus-visible:ring-2 focus-visible:ring-white/60"
-      >
-        <ChevronLeft size={18} />
-        Albums
-      </button>
+      <BackToAlbums onBack={onBack} />
       <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
           <h2 className="truncate text-[24px] leading-tight font-bold tracking-tight">{album.name}</h2>
@@ -43,8 +37,8 @@ export function AlbumHeader({
         </div>
         <div className="flex items-center gap-2">
           {onImport && (
-            <Button size="sm" icon={<ImagePlus size={15} />} onClick={onImport}>
-              Import More
+            <Button size="sm" icon={<HardDrive size={15} />} onClick={onImport}>
+              Importing…
             </Button>
           )}
           {onAddPhotos && (
@@ -58,6 +52,58 @@ export function AlbumHeader({
             </IconButton>
           )}
         </div>
+      </div>
+    </div>
+  )
+}
+
+function BackToAlbums({ onBack }: { onBack: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onBack}
+      className="-ml-2 flex items-center gap-0.5 rounded-full py-1 pr-3 pl-1.5 text-[14px] font-medium text-accent transition outline-none hover:bg-white/[0.07] focus-visible:ring-2 focus-visible:ring-white/60"
+    >
+      <ChevronLeft size={18} />
+      Albums
+    </button>
+  )
+}
+
+/** Recently Deleted: how long things are kept, and recover or empty it in one go. */
+export function DeletedHeader({
+  count,
+  days,
+  onBack,
+  onRecoverAll,
+  onDeleteAll,
+}: {
+  count: number
+  days: number
+  onBack: () => void
+  onRecoverAll: () => void
+  onDeleteAll: () => void
+}) {
+  return (
+    <div className={cn(pad, 'pt-1 pb-4')}>
+      <BackToAlbums onBack={onBack} />
+      <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="truncate text-[24px] leading-tight font-bold tracking-tight">Recently Deleted</h2>
+          <p className="mt-0.5 text-[13px] text-white/50">
+            <span className="tabular-nums">{plural(count, 'item')}</span> · Kept for {days} days, then deleted for good
+          </p>
+        </div>
+        {count > 0 && (
+          <div className="flex items-center gap-2">
+            <Button size="sm" icon={<RotateCcw size={15} />} onClick={onRecoverAll}>
+              Recover All
+            </Button>
+            <Button size="sm" variant="ghost" icon={<Trash2 size={15} />} onClick={onDeleteAll} className="text-red-300! hover:bg-red-500/15! hover:text-red-200!">
+              Delete All
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -93,17 +139,17 @@ export function SharedHeader({
           className="pointer-events-none absolute -top-24 -right-16 size-72 rounded-full opacity-40 blur-3xl"
           style={{ background: 'radial-gradient(circle, var(--plumos-accent), transparent 65%)' }}
         />
-        <div className="relative flex flex-wrap items-center gap-4">
+        <div className="relative flex flex-wrap items-center gap-x-4 gap-y-3">
           <div className="flex -space-x-2.5">
             {people.map((p) => (
               <Avatar key={p.id} person={p} size={40} ring />
             ))}
           </div>
-          <div className="min-w-0 flex-1">
+          <div className="order-last w-full min-w-0 sm:order-none sm:w-auto sm:flex-1">
             <h2 className="text-[18px] font-semibold tracking-tight">Family space</h2>
             <p className="mt-0.5 text-[13px] text-white/55">Photos everyone in your home can see and add to.</p>
           </div>
-          <Button size="sm" icon={<Plus size={15} />} onClick={onAddPhotos}>
+          <Button size="sm" icon={<Plus size={15} />} onClick={onAddPhotos} className="ml-auto">
             Add Photos
           </Button>
         </div>
