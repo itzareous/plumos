@@ -177,7 +177,7 @@ export function Toolbar(p: ToolbarProps) {
         <div className="flex shrink-0 items-center gap-1">
           {viewToggle}
           {p.showSort && (
-            <IconButton label="Sort by" onClick={(e) => below(e, sortItems())} className="hidden md:inline-flex">
+            <IconButton label="Sort by" onClick={(e) => below(e, sortItems())} className="max-md:hidden">
               <ArrowUpDown size={17} />
             </IconButton>
           )}
