@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from 'motion/react'
 import { ExternalLink, Info, Link2, Trash2 } from 'lucide-react'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { AppIcon } from '@/components/icons/AppIcon'
 import { useContextMenu } from '@/components/ui/ContextMenu'
 import { findApp } from '@/apps/catalog'
@@ -14,6 +14,7 @@ export function AppGrid() {
   const apps = useInstalledApps()
   const installing = useApps((s) => s.installing)
   const uninstall = useApps((s) => s.uninstall)
+  const move = useApps((s) => s.move)
   const open = useWindows((s) => s.open)
   const menu = useContextMenu()
   const pending = Object.entries(installing)
@@ -38,12 +39,42 @@ export function AppGrid() {
     },
   ]
 
+  const gridRef = useRef<HTMLDivElement>(null)
+
+  // While dragging an icon, move it into the slot under the pointer. Slots are
+  // found from offsetLeft/Top — the final layout position, unaffected by the
+  // transforms of tiles that are still animating — so the order can't flicker.
+  const dragOver = (id: string, point: { x: number; y: number }) => {
+    const grid = gridRef.current
+    if (!grid) return
+    const rect = grid.getBoundingClientRect()
+    const x = point.x - window.scrollX - rect.left
+    const y = point.y - window.scrollY - rect.top
+    const target = [...grid.querySelectorAll<HTMLElement>('[data-app-id]')].find(
+      (el) =>
+        el.dataset.appId !== id &&
+        x >= el.offsetLeft &&
+        x <= el.offsetLeft + el.offsetWidth &&
+        y >= el.offsetTop &&
+        y <= el.offsetTop + el.offsetHeight,
+    )
+    const { installed } = useApps.getState()
+    const to = target?.dataset.appId ? installed.indexOf(target.dataset.appId) : -1
+    if (to !== -1 && installed.indexOf(id) !== to) move(id, to)
+  }
+
   return (
     <>
-      <div className="grid w-full max-w-[880px] grid-cols-4 gap-x-2 gap-y-6 sm:grid-cols-5 sm:gap-y-7 lg:grid-cols-6">
+      <div ref={gridRef} className="relative grid w-full max-w-[880px] grid-cols-4 gap-x-2 gap-y-6 sm:grid-cols-5 sm:gap-y-7 lg:grid-cols-6">
         <AnimatePresence initial={false}>
           {apps.map((app, i) => (
-            <AppTile key={app.id} app={app} index={i} onContextMenu={menu.handler(menuFor(app))} />
+            <AppTile
+              key={app.id}
+              app={app}
+              index={i}
+              onContextMenu={menu.handler(menuFor(app))}
+              onDragOver={(point) => dragOver(app.id, point)}
+            />
           ))}
           {pending.map(({ app, state }) => (
             <AppTile key={app.id} app={app} index={apps.length} progress={state.progress} />
@@ -55,19 +86,27 @@ export function AppGrid() {
   )
 }
 
+// Rearranging by drag is mouse-only so it never fights with touch scrolling.
+const finePointer = typeof window !== 'undefined' && window.matchMedia('(hover: hover) and (pointer: fine)').matches
+
 function AppTile({
   app,
   index,
   progress,
   onContextMenu,
+  onDragOver,
 }: {
   app: AppInfo
   index: number
   progress?: number
   onContextMenu?: (e: React.MouseEvent) => void
+  onDragOver?: (point: { x: number; y: number }) => void
 }) {
   const [launching, setLaunching] = useState(false)
+  const [dragging, setDragging] = useState(false)
+  const dragged = useRef(false)
   const installing = progress !== undefined
+  const draggable = finePointer && !installing && Boolean(onDragOver)
 
   return (
     <motion.button
@@ -76,9 +115,29 @@ function AppTile({
       initial={{ opacity: 0, scale: 0.6 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.6 }}
-      transition={{ type: 'spring', stiffness: 380, damping: 28, delay: Math.min(index, 12) * 0.018 }}
+      transition={{
+        default: { type: 'spring', stiffness: 380, damping: 28, delay: Math.min(index, 12) * 0.018 },
+        layout: { type: 'spring', stiffness: 520, damping: 40 },
+      }}
       disabled={installing}
+      data-app-id={installing ? undefined : app.id}
+      drag={draggable}
+      dragSnapToOrigin
+      dragMomentum={false}
+      dragElastic={1}
+      onDragStart={() => {
+        dragged.current = true
+        setDragging(true)
+      }}
+      onDrag={(_, info) => onDragOver?.(info.point)}
+      onDragEnd={() => {
+        setDragging(false)
+        // The click that ends a drag must not launch the app.
+        setTimeout(() => (dragged.current = false), 0)
+      }}
+      style={{ zIndex: dragging ? 20 : undefined }}
       onClick={() => {
+        if (dragged.current) return
         setLaunching(true)
         setTimeout(() => setLaunching(false), 500)
         launchApp(app)
@@ -89,9 +148,9 @@ function AppTile({
     >
       <motion.div
         className="relative"
-        animate={launching ? { scale: [1, 0.86, 1.06, 1] } : { scale: 1 }}
         transition={{ duration: 0.45 }}
-        whileHover={installing ? undefined : { y: -3 }}
+        animate={dragging ? { scale: 1.12 } : launching ? { scale: [1, 0.86, 1.06, 1] } : { scale: 1 }}
+        whileHover={installing || dragging ? undefined : { y: -3 }}
         whileTap={{ scale: 0.92 }}
       >
         <div className="size-[58px] sm:size-[66px]">
@@ -99,7 +158,10 @@ function AppTile({
         </div>
         {installing && <InstallOverlay progress={progress} />}
       </motion.div>
-      <span className="text-on-wallpaper max-w-full truncate px-1 text-[12.5px] font-semibold text-white sm:text-[13px]">
+      <span
+        className="text-on-wallpaper max-w-full truncate px-1 text-[12.5px] font-semibold text-white transition-opacity sm:text-[13px]"
+        style={{ opacity: dragging ? 0 : 1 }}
+      >
         {installing ? 'Installing…' : app.name}
       </span>
     </motion.button>
