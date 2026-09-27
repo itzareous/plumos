@@ -79,7 +79,7 @@ textarea,
 
 /* Darker glass for sheets, menus and dialogs where text must stay legible. */
 .glass-dark {
-  background: rgb(18 18 26 / 0.72);
+  background: rgb(18 18 26 / 0.8);
   backdrop-filter: blur(40px) saturate(1.6);
   -webkit-backdrop-filter: blur(40px) saturate(1.6);
   box-shadow:

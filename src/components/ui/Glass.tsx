@@ -20,7 +20,7 @@ function displacementMap(width: number, height: number, radius: number, depth: n
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
     <defs>
       <linearGradient id="r" x1="100%" y1="0%" x2="0%" y2="0%"><stop offset="0%" stop-color="#000"/><stop offset="100%" stop-color="#f00"/></linearGradient>
-      <linearGradient id="b" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#000"/><stop offset="100%" stop-color="#00f"/></linearGradient>
+      <linearGradient id="b" x1="0%" y1="100%" x2="0%" y2="0%"><stop offset="0%" stop-color="#000"/><stop offset="100%" stop-color="#00f"/></linearGradient>
     </defs>
     <rect width="${width}" height="${height}" fill="#000"/>
     <rect width="${width}" height="${height}" rx="${radius}" fill="url(#r)"/>
@@ -115,11 +115,11 @@ export function Glass({
             <feImage href={map} x="0" y="0" width={size.w} height={size.h} result="map" preserveAspectRatio="none" />
             <feGaussianBlur in="SourceGraphic" stdDeviation={blur} result="blurred" />
             {/* Split the channels slightly for a hint of chromatic aberration. */}
-            <feDisplacementMap in="blurred" in2="map" scale={-refraction} xChannelSelector="R" yChannelSelector="B" result="dr" />
+            <feDisplacementMap in="blurred" in2="map" scale={refraction} xChannelSelector="R" yChannelSelector="B" result="dr" />
             <feColorMatrix in="dr" type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="red" />
-            <feDisplacementMap in="blurred" in2="map" scale={-refraction * 0.97} xChannelSelector="R" yChannelSelector="B" result="dg" />
+            <feDisplacementMap in="blurred" in2="map" scale={refraction * 0.97} xChannelSelector="R" yChannelSelector="B" result="dg" />
             <feColorMatrix in="dg" type="matrix" values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0" result="green" />
-            <feDisplacementMap in="blurred" in2="map" scale={-refraction * 0.94} xChannelSelector="R" yChannelSelector="B" result="db" />
+            <feDisplacementMap in="blurred" in2="map" scale={refraction * 0.94} xChannelSelector="R" yChannelSelector="B" result="db" />
             <feColorMatrix in="db" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" result="blue" />
             <feBlend in="red" in2="green" mode="screen" result="rg" />
             <feBlend in="rg" in2="blue" mode="screen" />
