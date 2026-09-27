@@ -137,7 +137,17 @@ export const collections: Record<string, Collection> = {
     title: 'AI on your terms',
     subtitle: 'Models, chat and creative tools that run on your server',
     category: 'ai',
-    apps: byIds(['ollama', 'open-webui', 'hermes-agent', 'openclaw', 'comfyui', 'librechat', 'whisper', 'localai', 'invokeai']),
+    apps: byIds([
+      'ollama',
+      'open-webui',
+      'hermes-agent',
+      'openclaw',
+      'comfyui',
+      'librechat',
+      'whisper',
+      'localai',
+      'invokeai',
+    ]),
   },
   media: {
     id: 'media',

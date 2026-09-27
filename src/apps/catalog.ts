@@ -4,6 +4,7 @@ import {
   ArrowDownToLine,
   AudioLines,
   BellRing,
+  Bird,
   Blocks,
   Bookmark,
   BookOpen,
@@ -29,6 +30,7 @@ import {
   Joystick,
   KeyRound,
   Layers,
+  LayoutDashboard,
   Library,
   Lightbulb,
   ListTodo,
@@ -43,6 +45,7 @@ import {
   Radar,
   Radio,
   RadioTower,
+  ReceiptText,
   RefreshCw,
   Route,
   Rss,
@@ -532,7 +535,7 @@ export const catalog: AppInfo[] = [
     category: 'bitcoin',
     developer: 'RTL',
     version: '0.15.6',
-    icon: { type: 'glyph', glyph: Gauge, background: 'linear-gradient(150deg, #38bdf8 0%, #312e81 100%)' },
+    icon: { type: 'glyph', glyph: LayoutDashboard, background: 'linear-gradient(150deg, #38bdf8 0%, #312e81 100%)' },
     port: 3008,
     size: 0.15 * GB,
     keywords: ['lightning', 'channels', 'dashboard'],
@@ -630,6 +633,20 @@ export const catalog: AppInfo[] = [
     port: 5003,
     size: 0.3 * GB,
     keywords: ['alerts', 'monitoring', 'prices', 'restock'],
+  },
+  {
+    id: 'huginn',
+    name: 'Huginn',
+    tagline: 'Little agents that watch the web for you',
+    description:
+      'Build small agents that check websites, feeds and inboxes on a schedule, then act on what they find. Get a digest of new listings, a nudge when the weather turns, or a message when a parcel ships.',
+    category: 'automation',
+    developer: 'Huginn',
+    version: '2025.9.4',
+    icon: { type: 'glyph', glyph: Bird, background: 'linear-gradient(150deg, #94a3b8 0%, #334155 100%)' },
+    port: 3007,
+    size: 0.6 * GB,
+    keywords: ['agents', 'scraping', 'digest', 'schedule'],
   },
 
   // ---------- Files & productivity ----------
@@ -809,6 +826,20 @@ export const catalog: AppInfo[] = [
     port: 3001,
     size: 0.3 * GB,
     keywords: ['monitoring', 'status', 'alerts', 'uptime'],
+  },
+  {
+    id: 'speedtest-tracker',
+    name: 'Speedtest Tracker',
+    tagline: 'Keep your internet provider honest',
+    description:
+      'Runs a speed test on a schedule and charts your download, upload and latency over weeks and months. When the connection slows down, you’ll have the receipts.',
+    category: 'networking',
+    developer: 'Alex Justesen',
+    version: '1.6.5',
+    icon: { type: 'glyph', glyph: Gauge, background: 'linear-gradient(150deg, #fcd34d 0%, #0d9488 100%)' },
+    port: 8765,
+    size: 0.2 * GB,
+    keywords: ['internet', 'bandwidth', 'isp', 'latency'],
   },
 
   // ---------- Developer tools ----------
@@ -1100,6 +1131,20 @@ export const catalog: AppInfo[] = [
     size: 0.5 * GB,
     isNew: true,
     keywords: ['stocks', 'portfolio', 'investing', 'wealth'],
+  },
+  {
+    id: 'invoice-ninja',
+    name: 'Invoice Ninja',
+    tagline: 'Invoices and quotes for your side business',
+    description:
+      'Send polished invoices and quotes, track time and expenses, and see who still owes you. Clients get a tidy portal to pay online, and your books stay on your own server.',
+    category: 'finance',
+    developer: 'Invoice Ninja',
+    version: '5.12.20',
+    icon: { type: 'glyph', glyph: ReceiptText, background: 'linear-gradient(150deg, #38bdf8 0%, #0f766e 100%)' },
+    port: 9500,
+    size: 0.8 * GB,
+    keywords: ['invoices', 'billing', 'freelance', 'quotes'],
   },
 
   // ---------- Gaming ----------

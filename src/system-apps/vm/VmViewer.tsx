@@ -87,7 +87,7 @@ export function VmViewer({ app, spec }: { app: AppInfo; spec: VmSpec }) {
         actions={{ start, shutdown, restart, fullscreen: toggleFullscreen, cad: () => setCad((n) => n + 1), setAgent }}
       />
       <div className="relative flex min-h-0 flex-1">
-        <div className="flex min-w-0 flex-1 flex-col pb-[84px]">
+        <div className="flex min-w-0 flex-1 flex-col pb-[env(safe-area-inset-bottom)]">
           <ScreenStage
             os={os}
             fullscreen={fullscreen}

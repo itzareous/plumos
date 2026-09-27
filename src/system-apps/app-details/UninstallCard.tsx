@@ -61,7 +61,12 @@ export function UninstallCard({ app }: { app: AppInfo }) {
               </Button>
             </motion.div>
           ) : (
-            <motion.div key="ask" initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -8 }}>
+            <motion.div
+              key="ask"
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -8 }}
+            >
               <Button size="sm" variant="secondary" className="text-red-300!" onClick={() => setConfirming(true)}>
                 Uninstall…
               </Button>

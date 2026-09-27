@@ -85,7 +85,7 @@ export function Hero() {
         if (e.key === 'ArrowLeft') go(index - 1, -1)
       }}
     >
-      <div className="relative h-[388px] overflow-hidden rounded-[26px] bg-[#141425] ring-1 ring-inset ring-white/10 sm:h-[300px]">
+      <div className="relative h-[400px] overflow-hidden rounded-[26px] bg-[#141425] ring-1 ring-inset ring-white/10 sm:h-[300px]">
         <AnimatePresence initial={false} custom={dir}>
           <motion.div
             key={banner.id}

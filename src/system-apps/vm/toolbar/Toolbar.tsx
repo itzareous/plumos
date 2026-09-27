@@ -90,7 +90,7 @@ export function Toolbar({ app, spec, power, agent, actions }: Props) {
           <StatusLabel power={power} />
         </div>
         <p className="truncate text-[12px] text-white/45 tabular-nums xl:hidden">
-          {spec.cpus} vCPU · {spec.memoryGb} GB memory · {spec.diskGb} GB disk
+          {spec.cpus} vCPU · {spec.memoryGb} GB RAM · {spec.diskGb} GB disk
         </p>
       </div>
       <div className="ml-1 hidden items-center gap-1.5 xl:flex">

@@ -4,7 +4,16 @@ import { findApp } from '@/apps/catalog'
 import { AppIcon } from '@/components/icons/AppIcon'
 
 /** An app icon placed on the 520×300 art stage, bobbing gently. */
-function FloatIcon({ id, x, y, size, delay = 0, tilt = 0 }: { id: string; x: number; y: number; size: number; delay?: number; tilt?: number }) {
+interface FloatIconProps {
+  id: string
+  x: number
+  y: number
+  size: number
+  delay?: number
+  tilt?: number
+}
+
+function FloatIcon({ id, x, y, size, delay = 0, tilt = 0 }: FloatIconProps) {
   const app = findApp(id)
   if (!app) return null
   return (
@@ -23,21 +32,33 @@ function Stage({ children }: { children: ReactNode }) {
   return (
     <div
       aria-hidden
-      className="pointer-events-none absolute top-0 right-0 h-[300px] w-[520px] origin-top-right max-sm:right-1/2 max-sm:translate-x-1/2 max-sm:origin-top max-sm:scale-[0.74] lg:right-6"
+      className="pointer-events-none absolute top-0 right-0 h-[300px] w-[520px] origin-top-right max-sm:-top-3 max-sm:right-1/2 max-sm:translate-x-1/2 max-sm:origin-top max-sm:scale-[0.7] lg:right-6"
     >
       {children}
     </div>
   )
 }
 
+/** A four-pointed twinkle: each arm curves in towards a pinched centre. */
 function Sparkle({ x, y, s = 10, o = 0.85 }: { x: number; y: number; s?: number; o?: number }) {
-  return (
-    <path
-      d={`M${x} ${y - s} C${x + s * 0.12} ${y - s * 0.12} ${x + s * 0.12} ${y - s * 0.12} ${x + s} ${y} C${x + s * 0.12} ${y + s * 0.12} ${x + s * 0.12} ${y + s * 0.12} ${x} ${y + s} C${x - s * 0.12} ${y + s * 0.12} ${x - s * 0.12} ${y + s * 0.12} ${x - s} ${y} C${x - s * 0.12} ${y - s * 0.12} ${x - s * 0.12} ${y - s * 0.12} ${x} ${y - s}Z`}
-      fill="white"
-      fillOpacity={o}
-    />
-  )
+  const k = s * 0.12
+  const points: [number, number][] = [
+    [x + s, y],
+    [x, y + s],
+    [x - s, y],
+    [x, y - s],
+  ]
+  const corners: [number, number][] = [
+    [x + k, y - k],
+    [x + k, y + k],
+    [x - k, y + k],
+    [x - k, y - k],
+  ]
+  const d =
+    `M${x} ${y - s}` +
+    points.map(([px, py], i) => ` C${corners[i][0]} ${corners[i][1]} ${corners[i][0]} ${corners[i][1]} ${px} ${py}`).join('') +
+    'Z'
+  return <path d={d} fill="white" fillOpacity={o} />
 }
 
 export function AiArt() {
@@ -77,7 +98,16 @@ export function AiArt() {
   )
 }
 
-function Poster({ x, y, rotate, from, to, children }: { x: number; y: number; rotate: number; from: string; to: string; children?: ReactNode }) {
+interface PosterProps {
+  x: number
+  y: number
+  rotate: number
+  from: string
+  to: string
+  children?: ReactNode
+}
+
+function Poster({ x, y, rotate, from, to, children }: PosterProps) {
   return (
     <div
       className="absolute h-[138px] w-[96px] overflow-hidden rounded-[12px] shadow-[0_20px_40px_-12px_rgb(0_0_0/0.55)] ring-1 ring-white/20"

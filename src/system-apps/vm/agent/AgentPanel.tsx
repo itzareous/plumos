@@ -150,7 +150,7 @@ export function AgentDrawer({ os, power, open, onToggle }: PanelProps & { open: 
   const last = log[log.length - 1]
   return (
     <>
-      <div className="relative z-10 mx-3 mb-2 flex h-[52px] shrink-0 items-center gap-3 rounded-2xl bg-white/[0.07] pr-1.5 pl-3 ring-1 ring-inset ring-white/10 sm:mx-5">
+      <div className="relative z-10 mx-3 mb-3 flex h-[52px] shrink-0 items-center gap-3 rounded-2xl bg-white/[0.07] pr-1.5 pl-3 ring-1 ring-inset ring-white/10 sm:mx-5">
         <AgentAvatar size={26} active={status === 'running' && power === 'running'} />
         <button type="button" onClick={onToggle} className="min-w-0 flex-1 text-left outline-none" aria-expanded={open}>
           <span className="block truncate text-[13px] font-medium text-white">{last?.text ?? 'Agent'}</span>
@@ -164,7 +164,7 @@ export function AgentDrawer({ os, power, open, onToggle }: PanelProps & { open: 
       <AnimatePresence>
         {open && (
           <motion.div
-            className="glass-dark absolute inset-x-2 top-[20%] bottom-[150px] z-30 flex flex-col overflow-hidden rounded-3xl sm:inset-x-5"
+            className="glass-dark absolute inset-x-2 top-3 bottom-[68px] z-30 flex flex-col overflow-hidden rounded-3xl sm:inset-x-5 sm:top-[12%]"
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 40, transition: { duration: 0.18 } }}

@@ -1,243 +1,331 @@
-// "Vestra" — sunset over a jagged mountain range and a black-sand beach.
+// "Vestra" — sunset over jagged dark mountains and a black-sand beach, with
+// wet sand mirroring the sky and a wave of foam lace rolling in.
 // The default Plumos wallpaper.
-import { W, H, ridge, toPath, smooth, grain, svg } from './util.mjs'
+import {
+  W, H, image, eachPixel, toMarkup, perlin, fbm, ridged, worley, blur, hex, ramp, clamp, smoothstep, mix,
+  profile, at, roughen,
+} from './raster.mjs'
 
 const HORIZON = 880
+const img = image()
+const { w, h } = img
+const K = W / w
 
-const main = ridge(
-  [
-    [-0.02, 0.55], [0.08, 0.54], [0.13, 0.49], [0.17, 0.44], [0.2, 0.38], [0.235, 0.31],
-    [0.27, 0.26], [0.3, 0.215], [0.325, 0.25], [0.345, 0.205], [0.37, 0.27], [0.4, 0.33],
-    [0.43, 0.38], [0.46, 0.415], [0.5, 0.43], [0.54, 0.41], [0.57, 0.39], [0.6, 0.365],
-    [0.63, 0.35], [0.66, 0.375], [0.69, 0.325], [0.72, 0.355], [0.75, 0.335], [0.78, 0.3],
-    [0.81, 0.325], [0.835, 0.265], [0.855, 0.32], [0.88, 0.37], [0.91, 0.41], [0.94, 0.395],
-    [0.97, 0.43], [1.02, 0.46],
-  ],
-  { seed: 11, amp: 46, roughness: 0.52, depth: 5 },
+const pts = (list) => list.map(([u, v]) => [u * W, v * H])
+
+const mainTop = roughen(
+  profile(
+    pts([
+      [-0.2, 0.6], [-0.02, 0.55], [0.08, 0.54], [0.13, 0.49], [0.17, 0.44], [0.2, 0.38], [0.235, 0.31],
+      [0.27, 0.26], [0.3, 0.215], [0.325, 0.25], [0.345, 0.205], [0.37, 0.27], [0.4, 0.33], [0.43, 0.38],
+      [0.46, 0.415], [0.5, 0.43], [0.54, 0.41], [0.57, 0.39], [0.6, 0.365], [0.63, 0.35], [0.66, 0.375],
+      [0.69, 0.325], [0.72, 0.355], [0.75, 0.335], [0.78, 0.3], [0.81, 0.325], [0.835, 0.265], [0.855, 0.32],
+      [0.88, 0.37], [0.91, 0.41], [0.94, 0.395], [0.97, 0.43], [1.02, 0.46], [1.2, 0.5],
+    ]),
+  ),
+  11, 62, 0.0055,
+)
+const farTop = roughen(
+  profile(
+    pts([
+      [-0.2, 0.52], [-0.02, 0.5], [0.05, 0.47], [0.1, 0.45], [0.14, 0.43], [0.2, 0.46], [0.26, 0.5],
+      [0.4, 0.45], [0.48, 0.4], [0.55, 0.38], [0.62, 0.41], [0.72, 0.43], [0.86, 0.42], [0.93, 0.44],
+      [1.02, 0.47], [1.2, 0.49],
+    ]),
+  ),
+  5, 26, 0.004,
+)
+const waveTop = profile(
+  pts([
+    [-0.3, 1.0], [-0.05, 0.92], [0.05, 0.88], [0.15, 0.83], [0.26, 0.79], [0.38, 0.765], [0.5, 0.75],
+    [0.62, 0.742], [0.75, 0.735], [0.88, 0.728], [1.05, 0.72], [1.3, 0.71],
+  ]),
 )
 
-const far = ridge(
-  [
-    [-0.02, 0.5], [0.05, 0.47], [0.1, 0.45], [0.14, 0.43], [0.2, 0.46], [0.26, 0.5],
-    [0.4, 0.45], [0.48, 0.4], [0.55, 0.38], [0.62, 0.41], [0.72, 0.43], [0.86, 0.42],
-    [0.93, 0.44], [1.02, 0.47],
-  ],
-  { seed: 5, amp: 26, roughness: 0.5, depth: 5 },
-)
+// ---------- Sky ----------
 
-const closeBottom = [[W + 40, HORIZON + 4], [-40, HORIZON + 4]]
-const mainPath = toPath(main, closeBottom)
-const farPath = toPath(far, closeBottom)
+const skyRamp = ramp([
+  [0, '#132a5e'],
+  [0.26, '#34498f'],
+  [0.48, '#8174ae'],
+  [0.66, '#d493a4'],
+  [0.82, '#f2b784'],
+  [1, '#fbd6a0'],
+])
+const cloudLit = ramp([
+  [0, '#aaa5dc'],
+  [0.35, '#f1cde0'],
+  [0.6, '#ffdcc9'],
+  [0.8, '#ffd29c'],
+  [1, '#f4b087'],
+])
+const cloudShade = ramp([
+  [0, '#3f4388'],
+  [0.5, '#8d6ea0'],
+  [1, '#cf8a84'],
+])
+const SUN = [0.74 * W, 0.535 * H]
+const SUN_C = hex('#fff0c2')
+const SUN_GLOW = hex('#ffc27d')
 
-// Wet sand that mirrors the sky.
-const pools = [
-  smooth([[-0.05, 0.545], [0.2, 0.548], [0.4, 0.556], [0.44, 0.585], [0.3, 0.61], [0.1, 0.63], [-0.05, 0.64]], true),
-  smooth([[0.55, 0.55], [0.8, 0.548], [1.05, 0.55], [1.05, 0.63], [0.85, 0.625], [0.7, 0.6], [0.6, 0.58]], true),
-  smooth([[0.18, 0.66], [0.32, 0.655], [0.4, 0.668], [0.3, 0.68], [0.2, 0.678]], true),
-  smooth([[0.62, 0.655], [0.8, 0.648], [0.95, 0.66], [0.8, 0.675], [0.66, 0.672]], true),
-]
+const cn = perlin(21)
+const cw = perlin(22)
+const pn = perlin(8)
+const ROT = (14 * Math.PI) / 180
+const RC = Math.cos(ROT)
+const RS = Math.sin(ROT)
 
-// The incoming wave in the foreground.
-const waveTop = [
-  [-0.05, 0.92], [0.05, 0.88], [0.15, 0.83], [0.26, 0.79], [0.38, 0.765], [0.5, 0.75],
-  [0.62, 0.742], [0.75, 0.735], [0.88, 0.728], [1.05, 0.72],
-]
-const wavePath = smooth(waveTop) + ` L${W + 60},${H + 60} L-60,${H + 60} Z`
-const crestPath = smooth(waveTop)
+function sky(x, y, out) {
+  const t = clamp((y + 0.22 * x) / (HORIZON + 0.22 * W))
+  const base = skyRamp(t)
+  let r = base[0]
+  let g = base[1]
+  let b = base[2]
+  // Sun glow near the horizon on the right.
+  const dx = (x - SUN[0]) / W
+  const dy = (y - SUN[1]) / H
+  const d2 = dx * dx + dy * dy * 2
+  const core = Math.exp(-d2 / 0.004)
+  const glow = Math.exp(-d2 / 0.06)
+  r += SUN_C[0] * core * 0.9 + SUN_GLOW[0] * glow * 0.5
+  g += SUN_C[1] * core * 0.9 + SUN_GLOW[1] * glow * 0.5
+  b += SUN_C[2] * core * 0.9 + SUN_GLOW[2] * glow * 0.5
+  // Darker, deeper blue in the top-left corner.
+  const vig = Math.exp(-(((x / W - 0.05) / 0.6) ** 2 + ((y / H) / 0.5) ** 2)) * 0.45
+  r *= 1 - vig
+  g *= 1 - vig
+  b *= 1 - vig * 0.6
 
-const sky = `
-  <linearGradient id="sky" x1="0" y1="0" x2="0.35" y2="1">
-    <stop offset="0" stop-color="#172f66"/>
-    <stop offset="0.28" stop-color="#3b5299"/>
-    <stop offset="0.5" stop-color="#8a78b3"/>
-    <stop offset="0.68" stop-color="#d897a6"/>
-    <stop offset="0.82" stop-color="#f3bb86"/>
-    <stop offset="1" stop-color="#fbd9a0"/>
-  </linearGradient>
-  <radialGradient id="sun" cx="0.74" cy="0.53" r="0.55" gradientTransform="matrix(1 0 0 0.7 0 0.16)">
-    <stop offset="0" stop-color="#fff0c2" stop-opacity="1"/>
-    <stop offset="0.25" stop-color="#ffd185" stop-opacity="0.85"/>
-    <stop offset="0.6" stop-color="#f59e7a" stop-opacity="0.25"/>
-    <stop offset="1" stop-color="#f59e7a" stop-opacity="0"/>
-  </radialGradient>
-  <radialGradient id="vignetteSky" cx="0.1" cy="0" r="0.8">
-    <stop offset="0" stop-color="#0b1a45" stop-opacity="0.7"/>
-    <stop offset="1" stop-color="#0b1a45" stop-opacity="0"/>
-  </radialGradient>
+  // Clouds live in the upper part of the sky, in a frame rotated 14°.
+  const region = 1 - smoothstep(0.3 * H, 0.58 * H, y)
+  if (region > 0) {
+    const p = x * RC + y * RS
+    const q = -x * RS + y * RC
+    // Wispy cirrus: long strands, warped so they hook and fray.
+    const wq = q + 60 * fbm(cw, p * 0.0012, q * 0.004, 3)
+    const cir = fbm(cn, p * 0.0008, wq * 0.0068, 6)
+    const cirrus = smoothstep(0.02, 0.42, cir) * region
+    // Soft, darker cloud banks behind them.
+    const puff = smoothstep(-0.05, 0.4, fbm(pn, p * 0.0019, q * 0.005, 5)) * region
+    const k = clamp(x / W * 0.85 + (y / H) * 0.3)
+    const shade = cloudShade(k)
+    const lit = cloudLit(k)
+    const pa = puff * 0.5
+    r = mix(r, shade[0], pa)
+    g = mix(g, shade[1], pa)
+    b = mix(b, shade[2], pa)
+    const ca = cirrus * 0.9
+    r = mix(r, lit[0], ca)
+    g = mix(g, lit[1], ca)
+    b = mix(b, lit[2], ca)
+  }
+  out[0] = r
+  out[1] = g
+  out[2] = b
+  return out
+}
 
-  <filter id="cirrus" x="-900" y="-900" width="${W + 1800}" height="${H + 1800}" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
-    <feTurbulence type="fractalNoise" baseFrequency="0.0009 0.0075" numOctaves="6" seed="21"/>
-    <feColorMatrix type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  4.2 0 0 0 -2.05"/>
-    <feGaussianBlur stdDeviation="1.2"/>
-  </filter>
-  <filter id="puffs" x="-900" y="-900" width="${W + 1800}" height="${H + 1800}" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
-    <feTurbulence type="fractalNoise" baseFrequency="0.0022 0.0055" numOctaves="5" seed="8"/>
-    <feColorMatrix type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  3.4 0 0 0 -1.62"/>
-    <feGaussianBlur stdDeviation="3"/>
-  </filter>
-  <linearGradient id="cloudRegion" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0" stop-color="#fff" stop-opacity="0.95"/>
-    <stop offset="0.35" stop-color="#fff" stop-opacity="0.85"/>
-    <stop offset="0.52" stop-color="#fff" stop-opacity="0.2"/>
-    <stop offset="0.6" stop-color="#fff" stop-opacity="0"/>
-  </linearGradient>
-  <mask id="cloudRegionMask" maskUnits="userSpaceOnUse" x="0" y="0" width="${W}" height="${H}">
-    <rect width="${W}" height="${H}" fill="url(#cloudRegion)"/>
-  </mask>
-  <mask id="cirrusMask" maskUnits="userSpaceOnUse" x="0" y="0" width="${W}" height="${H}">
-    <g mask="url(#cloudRegionMask)">
-      <g transform="rotate(14 ${W / 2} ${H / 2})">
-        <rect x="-800" y="-800" width="${W + 1600}" height="${H + 1600}" filter="url(#cirrus)"/>
-      </g>
-    </g>
-  </mask>
-  <mask id="puffMask" maskUnits="userSpaceOnUse" x="0" y="0" width="${W}" height="${H}">
-    <g mask="url(#cloudRegionMask)">
-      <g transform="rotate(9 ${W / 2} ${H / 2})">
-        <rect x="-800" y="-800" width="${W + 1600}" height="${H + 1600}" filter="url(#puffs)"/>
-      </g>
-    </g>
-  </mask>
-  <linearGradient id="cloudColor" x1="0" y1="0" x2="1" y2="0.8">
-    <stop offset="0" stop-color="#b9b3e6"/>
-    <stop offset="0.35" stop-color="#f6d3e4"/>
-    <stop offset="0.6" stop-color="#ffe1cf"/>
-    <stop offset="0.8" stop-color="#ffd7a3"/>
-    <stop offset="1" stop-color="#f2b58c"/>
-  </linearGradient>
-  <linearGradient id="cloudShade" x1="0" y1="0" x2="0.4" y2="1">
-    <stop offset="0" stop-color="#4c4f94"/>
-    <stop offset="0.5" stop-color="#9b77a8"/>
-    <stop offset="1" stop-color="#d98e86"/>
-  </linearGradient>`
+// ---------- Mountains ----------
 
-const skyLayer = `
-  <rect width="${W}" height="${H}" fill="url(#sky)"/>
-  <rect width="${W}" height="${H}" fill="url(#sun)"/>
-  <rect width="${W}" height="${H}" fill="url(#vignetteSky)"/>
-  <rect width="${W}" height="${H}" fill="url(#cloudShade)" mask="url(#puffMask)" opacity="0.55"/>
-  <rect width="${W}" height="${H}" fill="url(#cloudColor)" mask="url(#cirrusMask)" opacity="0.92"/>`
+const rib = perlin(41)
+const rib2 = perlin(42)
+const tex = perlin(43)
+const ROCK_SHADE = hex('#17161d')
+const ROCK_WARM = hex('#533024')
+const RIM = hex('#ffa45c')
+const HAZE = hex('#2c2d44')
 
-const mountainDefs = `
-  <clipPath id="mainClip"><path d="${mainPath}"/></clipPath>
-  <clipPath id="farClip"><path d="${farPath}"/></clipPath>
-  <linearGradient id="rockBase" x1="0" y1="${0.2 * H}" x2="0" y2="${HORIZON}" gradientUnits="userSpaceOnUse">
-    <stop offset="0" stop-color="#4a2616"/>
-    <stop offset="0.3" stop-color="#2c1911"/>
-    <stop offset="0.7" stop-color="#150e0c"/>
-    <stop offset="1" stop-color="#1d1719"/>
-  </linearGradient>
-  <linearGradient id="rimLight" x1="0" y1="0" x2="1" y2="0">
-    <stop offset="0" stop-color="#ff9a4a" stop-opacity="0.15"/>
-    <stop offset="0.3" stop-color="#ffab5c" stop-opacity="0.55"/>
-    <stop offset="0.7" stop-color="#ffc07a" stop-opacity="0.35"/>
-    <stop offset="1" stop-color="#ffc07a" stop-opacity="0.15"/>
-  </linearGradient>
-  <linearGradient id="haze" x1="0" y1="${HORIZON - 200}" x2="0" y2="${HORIZON}" gradientUnits="userSpaceOnUse">
-    <stop offset="0" stop-color="#c9a3b0" stop-opacity="0"/>
-    <stop offset="1" stop-color="#b68f9e" stop-opacity="0.32"/>
-  </linearGradient>
-  <filter id="rock" x="0" y="0" width="100%" height="100%" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
-    <feTurbulence type="fractalNoise" baseFrequency="0.0045 0.011" numOctaves="7" seed="4" result="n"/>
-    <feDiffuseLighting in="n" surfaceScale="9" diffuseConstant="1.15" lighting-color="#ffd2a8">
-      <feDistantLight azimuth="200" elevation="28"/>
-    </feDiffuseLighting>
-  </filter>
-  <filter id="gullies" x="0" y="0" width="100%" height="100%" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
-    <feTurbulence type="fractalNoise" baseFrequency="0.011 0.0035" numOctaves="5" seed="12"/>
-    <feColorMatrix type="matrix" values="0 0 0 0 0.02  0 0 0 0 0.01  0 0 0 0 0.01  2.6 0 0 0 -1.15"/>
-  </filter>
-  <filter id="soft"><feGaussianBlur stdDeviation="10"/></filter>
-  <radialGradient id="sunlit" cx="${0.62 * W}" cy="${0.3 * H}" r="${0.55 * W}" gradientUnits="userSpaceOnUse">
-    <stop offset="0" stop-color="#ff9d4d" stop-opacity="0.32"/>
-    <stop offset="0.6" stop-color="#e0753a" stop-opacity="0.1"/>
-    <stop offset="1" stop-color="#e0753a" stop-opacity="0"/>
-  </radialGradient>`
+function mountain(x, y, out) {
+  const top = at(mainTop, x)
+  const d = y - top
+  const win = 14 + d * 0.8
+  const slope = (at(mainTop, x + win) - at(mainTop, x - win)) / (2 * win) // + = face turns right
+  const wide = 90 + d * 1.3
+  const lean = clamp((at(mainTop, x + wide) - at(mainTop, x - wide)) / (2 * wide), -0.9, 0.9)
+  const lx = x - d * lean * 0.85
+  // Steep ribs and gullies up high, running straight down the fall line.
+  const z = ridged(rib, lx * 0.011, y * 0.0013, 3) * 0.7 + ridged(rib2, lx * 0.034, y * 0.0035, 2) * 0.3
+  const zx = ridged(rib, (lx + 4) * 0.011, y * 0.0013, 3) * 0.7 + ridged(rib2, (lx + 4) * 0.034, y * 0.0035, 2) * 0.3 - z
+  // Smooth scree aprons spread out at the foot of the cliffs.
+  const scree = smoothstep(HORIZON - 260 + 90 * fbm(tex, x * 0.003, 1.7, 3), HORIZON - 40, y)
+  const streaks = 0.9 + 0.1 * tex(lx * 0.05, y * 0.004)
+  const rock = 0.4 + 1.1 * z * z
+  const detail = mix(rock, streaks * 0.75, scree)
+  // Faces turned towards the sunset catch a little warm light.
+  const facing = clamp(slope * 1.6 + zx * 14 * (1 - scree) + 0.05)
+  const sunward = 1 - smoothstep(0, 0.6 * W, Math.abs(x - SUN[0]))
+  const warm = facing * (0.25 + 0.75 * sunward) * (1 - smoothstep(0, 420, d)) * 0.6
+  // A crisp rim of light along the ridge where it faces the glow.
+  const rim = Math.exp(-d / 2.2) * clamp(slope * 2.5 + 0.35) * (0.35 + 0.65 * sunward)
+  const haze = smoothstep(HORIZON - 150, HORIZON, y) * 0.22
+  for (let c = 0; c < 3; c++) {
+    let v = mix(ROCK_SHADE[c], ROCK_WARM[c], warm) * detail
+    v += RIM[c] * rim * 0.7
+    out[c] = mix(v, HAZE[c], haze)
+  }
+  return out
+}
 
-const mountains = `
-  <g clip-path="url(#farClip)">
-    <rect width="${W}" height="${H}" fill="#6b5a82"/>
-    <rect width="${W}" height="${H}" filter="url(#rock)" opacity="0.35" style="mix-blend-mode:soft-light"/>
-    <rect y="${HORIZON - 300}" width="${W}" height="300" fill="url(#haze)"/>
-  </g>
-  <g clip-path="url(#mainClip)">
-    <rect width="${W}" height="${H}" fill="url(#rockBase)"/>
-    <rect width="${W}" height="${H}" filter="url(#rock)" opacity="0.85" style="mix-blend-mode:overlay"/>
-    <rect width="${W}" height="${H}" fill="url(#sunlit)" style="mix-blend-mode:screen"/>
-    <rect width="${W}" height="${H}" filter="url(#gullies)" opacity="0.55"/>
-    <path d="${toPath(main)}" fill="none" stroke="url(#rimLight)" stroke-width="18" filter="url(#soft)"/>
-    <rect y="${HORIZON - 200}" width="${W}" height="200" fill="url(#haze)"/>
-  </g>`
+const FAR = hex('#4d4870')
+const FAR_LOW = hex('#3a3656')
+function farMountain(x, y, skyC, out) {
+  const d = y - at(farTop, x)
+  const n = 0.85 + 0.15 * ridged(rib, x * 0.01, y * 0.003, 3)
+  const t = smoothstep(0, 180, d)
+  for (let c = 0; c < 3; c++) out[c] = mix(mix(FAR[c], FAR_LOW[c], t) * n, skyC[c], 0.18)
+  return out
+}
 
-const ground = `
-  <linearGradient id="sand" x1="0" y1="${HORIZON}" x2="0" y2="${H}" gradientUnits="userSpaceOnUse">
-    <stop offset="0" stop-color="#23222a"/>
-    <stop offset="0.35" stop-color="#121218"/>
-    <stop offset="1" stop-color="#07070a"/>
-  </linearGradient>
-  <filter id="reflectBlur" x="-5%" y="-5%" width="110%" height="110%">
-    <feGaussianBlur stdDeviation="2 9"/>
-  </filter>
-  <filter id="poolEdge"><feGaussianBlur stdDeviation="6"/></filter>
-  <mask id="wetMask" maskUnits="userSpaceOnUse" x="0" y="0" width="${W}" height="${H}">
-    <rect y="${HORIZON}" width="${W}" height="40" fill="#fff"/>
-    <g filter="url(#poolEdge)" fill="#fff">${pools.map((d) => `<path d="${d}"/>`).join('')}</g>
-    <path d="${wavePath}" fill="#3a3a3a" filter="url(#poolEdge)"/>
-  </mask>
-  <filter id="sandTexture" x="0" y="0" width="100%" height="100%" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
-    <feTurbulence type="fractalNoise" baseFrequency="0.0025 0.03" numOctaves="4" seed="31"/>
-    <feColorMatrix type="matrix" values="0 0 0 0 0.55  0 0 0 0 0.5  0 0 0 0 0.52  2.2 0 0 0 -1.05"/>
-  </filter>
-  <filter id="foam" x="0" y="0" width="100%" height="100%" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
-    <feTurbulence type="turbulence" baseFrequency="0.009 0.024" numOctaves="3" seed="41"/>
-    <feColorMatrix type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  -9 0 0 0 1.25"/>
-  </filter>
-  <filter id="foamFine" x="0" y="0" width="100%" height="100%" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
-    <feTurbulence type="turbulence" baseFrequency="0.035 0.07" numOctaves="2" seed="9"/>
-    <feColorMatrix type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  -10 0 0 0 1.1"/>
-  </filter>
-  <linearGradient id="foamFade" x1="0" y1="${0.72 * H}" x2="0" y2="${H}" gradientUnits="userSpaceOnUse">
-    <stop offset="0" stop-color="#fff" stop-opacity="1"/>
-    <stop offset="0.12" stop-color="#fff" stop-opacity="0.8"/>
-    <stop offset="0.5" stop-color="#fff" stop-opacity="0.45"/>
-    <stop offset="1" stop-color="#fff" stop-opacity="0.25"/>
-  </linearGradient>
-  <mask id="foamMask" maskUnits="userSpaceOnUse" x="0" y="0" width="${W}" height="${H}">
-    <path d="${wavePath}" fill="url(#foamFade)"/>
-  </mask>
-  <linearGradient id="water" x1="0" y1="${0.72 * H}" x2="0" y2="${H}" gradientUnits="userSpaceOnUse">
-    <stop offset="0" stop-color="#3a4760"/>
-    <stop offset="0.4" stop-color="#1b2433"/>
-    <stop offset="1" stop-color="#0c1018"/>
-  </linearGradient>`
+// ---------- Paint the sky and mountains ----------
 
-const groundLayer = `
-  <rect y="${HORIZON}" width="${W}" height="${H - HORIZON}" fill="url(#sand)"/>
-  <rect y="${HORIZON}" width="${W}" height="${H - HORIZON}" filter="url(#sandTexture)" opacity="0.18"/>
-  <g mask="url(#wetMask)">
-    <g filter="url(#reflectBlur)" transform="translate(0 ${2 * HORIZON}) scale(1 -1)" opacity="0.92">
-      ${skyLayer}
-      ${mountains}
-    </g>
-  </g>
-  <path d="${wavePath}" fill="url(#water)" opacity="0.6"/>
-  <g mask="url(#foamMask)">
-    <rect width="${W}" height="${H}" filter="url(#foam)" opacity="0.9"/>
-    <rect width="${W}" height="${H}" filter="url(#foamFine)" opacity="0.35"/>
-  </g>
-  <mask id="crestFoamMask" maskUnits="userSpaceOnUse" x="0" y="0" width="${W}" height="${H}">
-    <rect width="${W}" height="${H}" filter="url(#foamFine)"/>
-  </mask>
-  <g transform="translate(0 26)" mask="url(#crestFoamMask)">
-    <path d="${crestPath}" fill="none" stroke="#fff" stroke-width="56" opacity="0.9" filter="url(#poolEdge)"/>
-  </g>
-  <path d="${crestPath}" fill="none" stroke="#fff" stroke-width="10" opacity="0.8" filter="url(#poolEdge)"/>
-  <path d="${crestPath}" fill="none" stroke="#fff" stroke-width="3" opacity="0.9"/>`
+const tmp = [0, 0, 0]
+const tmp2 = [0, 0, 0]
+eachPixel(img, (x, y, i) => {
+  if (y > HORIZON + 3) return
+  sky(x, y, tmp)
+  let r = tmp[0]
+  let g = tmp[1]
+  let b = tmp[2]
+  const farCov = clamp((y - at(farTop, x)) / K + 0.5)
+  if (farCov > 0) {
+    farMountain(x, y, tmp, tmp2)
+    r = mix(r, tmp2[0], farCov)
+    g = mix(g, tmp2[1], farCov)
+    b = mix(b, tmp2[2], farCov)
+  }
+  const cov = clamp((y - at(mainTop, x)) / K + 0.5)
+  if (cov > 0) {
+    mountain(x, y, tmp2)
+    r = mix(r, tmp2[0], cov)
+    g = mix(g, tmp2[1], cov)
+    b = mix(b, tmp2[2], cov)
+  }
+  img.r[i] = r
+  img.g[i] = g
+  img.b[i] = b
+})
 
-export default svg(`
-  <defs>${sky}${mountainDefs}${ground}</defs>
-  ${skyLayer}
-  ${mountains}
-  ${groundLayer}
-  ${grain(0.1)}
-`)
+// ---------- Beach and wave ----------
+
+// Reflections: a crisp copy for the wet sand, a glossier one for the wave.
+const horizonRow = Math.ceil((HORIZON + 3) / K)
+const copy = (sx, sy) => {
+  const out = {}
+  for (const k of ['r', 'g', 'b']) out[k] = blur(img[k].slice(), w, h, sx / K, sy / K)
+  return out
+}
+const sharp = copy(1.5, 7)
+const glossy = copy(22, 60)
+
+function sample(buf, ch, x, y) {
+  const fx = clamp(x / K - 0.5, 0, w - 1.001)
+  const fy = clamp(y / K - 0.5, 0, horizonRow - 2.001)
+  const x0 = Math.floor(fx)
+  const y0 = Math.floor(fy)
+  const tx = fx - x0
+  const ty = fy - y0
+  const a = buf[ch]
+  const j = y0 * w + x0
+  const top = a[j] + (a[j + 1] - a[j]) * tx
+  const bot = a[j + w] + (a[j + w + 1] - a[j + w]) * tx
+  return top + (bot - top) * ty
+}
+
+const sandN = perlin(51)
+const poolN = perlin(52)
+const edgeN = perlin(53)
+const waterN = perlin(54)
+const lace = worley(55)
+const lace2 = worley(56)
+const SAND_FAR = hex('#1b1a21')
+const SAND_NEAR = hex('#09090c')
+const WATER = hex('#080b12')
+const FOAM = hex('#f1ebe8')
+const FOAM_SHADE = hex('#8f95a8')
+
+/** 0..1 amount of standing water on the sand. */
+function wetness(x, y, edge) {
+  const v = y / H
+  const sheet = 1 - smoothstep(HORIZON + 4, HORIZON + 22 + 14 * poolN(x * 0.004, 1), y)
+  // Long, flat pools, more of them towards the horizon and in two broad areas.
+  const bias =
+    0.7 * Math.exp(-(((x / W - 0.2) / 0.24) ** 2 + ((v - 0.585) / 0.03) ** 2)) +
+    0.62 * Math.exp(-(((x / W - 0.78) / 0.26) ** 2 + ((v - 0.585) / 0.028) ** 2)) +
+    0.3 * Math.exp(-(((x / W - 0.3) / 0.1) ** 2 + ((v - 0.665) / 0.012) ** 2)) +
+    0.3 * Math.exp(-(((x / W - 0.8) / 0.12) ** 2 + ((v - 0.66) / 0.012) ** 2))
+  const n = fbm(poolN, x * 0.0016, y * 0.016, 4) + bias - 0.24 - 0.3 * smoothstep(HORIZON, H, y)
+  const pools = smoothstep(0.0, 0.05, n)
+  // The swash zone just above the wave stays wet and glassy.
+  const swash = 1 - smoothstep(0, 40 + 40 * fbm(poolN, x * 0.003, 7, 2), edge - y)
+  return clamp(Math.max(sheet, pools, swash))
+}
+
+eachPixel(img, (x, y, i) => {
+  if (y <= HORIZON + 2) return
+  const my = 2 * HORIZON - y // mirrored row
+  const near = smoothstep(HORIZON, H, y) // 0 far, 1 near
+  const edge = at(waveTop, x) + 7 * fbm(edgeN, x * 0.012, 0.5, 3) + 3 * edgeN(x * 0.06, 2.5)
+  const dist = y - edge // > 0 inside the wave
+
+  let r
+  let g
+  let b
+  if (dist < 0) {
+    // Black sand: dry and matte, or wet and mirror-like.
+    const grain = 0.85 + 0.3 * fbm(sandN, x * 0.004, y * 0.04, 4)
+    const sr = mix(SAND_FAR[0], SAND_NEAR[0], near) * grain
+    const sg = mix(SAND_FAR[1], SAND_NEAR[1], near) * grain
+    const sb = mix(SAND_FAR[2], SAND_NEAR[2], near) * grain
+    const wet = wetness(x, y, edge)
+    const k = mix(0.82, 0.62, near) * wet
+    // Even the damp sand between the pools holds a faint, blurry sheen of sky.
+    const damp = 0.07 * (1 - wet) * (0.6 + 0.4 * fbm(poolN, x * 0.002, y * 0.02 + 5, 3))
+    r = sr * (1 - wet * 0.6) + sample(sharp, 'r', x, my) * k + sample(glossy, 'r', x, my) * damp
+    g = sg * (1 - wet * 0.6) + sample(sharp, 'g', x, my) * k + sample(glossy, 'g', x, my) * damp
+    b = sb * (1 - wet * 0.6) + sample(sharp, 'b', x, my) * k + sample(glossy, 'b', x, my) * damp
+    // A thin film of water runs ahead of the foam.
+    const film = Math.exp(dist / 5) * 0.3
+    r = mix(r, FOAM_SHADE[0] * 0.5, film)
+    g = mix(g, FOAM_SHADE[1] * 0.5, film)
+    b = mix(b, FOAM_SHADE[2] * 0.5, film)
+  } else {
+    // A thin sheet of water over black sand: it mirrors the sky at a grazing
+    // angle far away and turns darker and clearer close to the viewer.
+    const streak = 0.7 + 0.6 * smoothstep(-0.4, 0.5, fbm(waterN, x * 0.0018, y * 0.035, 4))
+    const fres = mix(0.3, 0.1, smoothstep(0, 1, near)) * (1 - 0.3 * smoothstep(0, 300, dist)) * streak
+    r = WATER[0] + sample(glossy, 'r', x, my) * fres
+    g = WATER[1] + sample(glossy, 'g', x, my) * fres
+    b = WATER[2] + sample(glossy, 'b', x, my) * fres
+
+    // Foam: a dense bubbly band at the leading edge. Behind it the foam
+    // breaks into lace (small holes, thick ropes), which frays into a few
+    // loose strands and then gives way to dark glossy water.
+    const s = 1 + near * 1.5 // perspective: foam grows as it comes closer
+    const d0 = dist / s
+    const band = Math.exp(-d0 / 11)
+    const drift = smoothstep(0.15, 0.55, fbm(edgeN, x * 0.0022, y * 0.007, 3)) * Math.exp(-d0 / 150) * 0.45
+    const density = clamp(band + Math.exp(-d0 / 58) * 0.95 + drift)
+    // Warp at two scales: broad drift plus a wiggle that curves the strands.
+    const wx = x + 40 * fbm(waterN, x * 0.005, y * 0.015, 3) + 7 * s * waterN(x * 0.035 / s, y * 0.1 / s)
+    const wy = y + 14 * fbm(sandN, x * 0.005, y * 0.015, 3) + 2.5 * s * sandN(x * 0.035 / s, y * 0.1 / s)
+    const f1 = lace(wx / (32 * s), wy / (10 * s))
+    const width = 0.02 + 0.34 * density ** 1.4 * (0.6 + 0.4 * sandN(wx * 0.02, wy * 0.06))
+    const fray = smoothstep(-0.15, 0.25, fbm(sandN, wx * 0.006 + 3, wy * 0.02, 3) + density - 0.55)
+    const rope = (1 - smoothstep(width * 0.35, width, lace.f2 - f1)) * smoothstep(0.15, 0.5, density) * fray
+    // A finer lace fills in where the foam is dense.
+    const g1 = lace2(wx / (12 * s), wy / (5 * s))
+    const fineRope = (1 - smoothstep(0.02, 0.05 + 0.25 * density, lace2.f2 - g1)) * smoothstep(0.45, 0.9, density) * 0.75
+    let foam = clamp(band * 1.25 + rope * 0.95 + fineRope)
+    foam *= 0.78 + 0.22 * fbm(sandN, x * 0.06, y * 0.18, 2) // bubbly texture
+    // Foam is lit by the sunset: bright on top, cooler in its folds.
+    const light = 0.55 + 0.45 * Math.exp(-dist / (220 * s))
+    r = mix(r, mix(FOAM_SHADE[0], FOAM[0], foam) * light, foam)
+    g = mix(g, mix(FOAM_SHADE[1], FOAM[1], foam) * light, foam)
+    b = mix(b, mix(FOAM_SHADE[2], FOAM[2], foam) * light, foam)
+  }
+  img.r[i] = r
+  img.g[i] = g
+  img.b[i] = b
+})
+
+export default toMarkup(img, { grain: 4, seed: 3 })

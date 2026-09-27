@@ -72,13 +72,16 @@ export function WorldMock({ c, r, id }: MockProps) {
   const cw = W / cols
   const back = Array.from({ length: cols }, (_, i) => 120 + Math.sin(i / 3) * 18 + r() * 14)
   const front = Array.from({ length: cols }, (_, i) => 170 + Math.cos(i / 2.5) * 16 + r() * 10)
+  // Terrain snaps to an 8px grid for a blocky, pixel-art look.
+  const snap = (h: number) => Math.round(h / 8) * 8
   const step = (hs: number[]) =>
-    `M0 ${H} ` + hs.map((h, i) => `L${i * cw} ${Math.round(h / 8) * 8} L${(i + 1) * cw} ${Math.round(h / 8) * 8}`).join(' ') + ` L${W} ${H} Z`
+    `M0 ${H} ` + hs.map((h, i) => `L${i * cw} ${snap(h)} L${(i + 1) * cw} ${snap(h)}`).join(' ') + ` L${W} ${H} Z`
   return (
     <g>
       <defs>
         <linearGradient id={`${id}-sky`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor={c.from} stopOpacity="0.55" />
+          <stop offset="0" stopColor="#7dd3fc" stopOpacity="0.5" />
+          <stop offset="0.65" stopColor={c.from} stopOpacity="0.18" />
           <stop offset="1" stopColor="#0f1016" stopOpacity="1" />
         </linearGradient>
       </defs>
@@ -92,13 +95,13 @@ export function WorldMock({ c, r, id }: MockProps) {
       {front.map((h, i) =>
         i % 4 === 1 ? (
           <g key={i}>
-            <rect x={i * cw + 5} y={Math.round(h / 8) * 8 - 18} width={6} height={18} fill="#5b3a1e" />
-            <rect x={i * cw - 2} y={Math.round(h / 8) * 8 - 34} width={20} height={18} fill={c.accent} fillOpacity="0.85" />
+            <rect x={i * cw + 5} y={snap(h) - 18} width={6} height={18} fill="#5b3a1e" />
+            <rect x={i * cw - 2} y={snap(h) - 34} width={20} height={18} fill={c.accent} fillOpacity="0.85" />
           </g>
         ) : null,
       )}
       {front.map((h, i) => (
-        <rect key={i} x={i * cw} y={Math.round(h / 8) * 8} width={cw} height={4} fill={c.accent} fillOpacity="0.9" />
+        <rect key={i} x={i * cw} y={snap(h)} width={cw} height={4} fill={c.accent} fillOpacity="0.9" />
       ))}
       <rect x={14} y={38} width={128} height={78} rx={10} fill="black" fillOpacity="0.5" />
       <circle cx={26} cy={51} r={3} fill="#4ade80" />

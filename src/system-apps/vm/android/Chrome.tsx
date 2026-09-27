@@ -13,12 +13,12 @@ export function StatusBar() {
   }, [])
   return (
     <div
-      className="pointer-events-none absolute inset-x-0 top-0 z-[60] flex items-center justify-between px-5 text-[13px] font-medium text-white tabular-nums"
+      className="pointer-events-none absolute inset-x-0 top-0 z-[60] flex items-center justify-between px-8 pt-1 text-[13px] font-medium text-white tabular-nums"
       style={{ height: STATUS_H }}
     >
       <span>{now.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }).replace(/\s?[AP]M$/i, '')}</span>
       {/* Punch-hole camera. */}
-      <span className="absolute top-[9px] left-1/2 size-[12px] -translate-x-1/2 rounded-full bg-black ring-1 ring-white/10" />
+      <span className="absolute top-[12px] left-1/2 size-[13px] -translate-x-1/2 rounded-full bg-black ring-1 ring-white/10" />
       <span className="flex items-center gap-1.5">
         <Signal />
         <Wifi size={14} strokeWidth={2.4} />

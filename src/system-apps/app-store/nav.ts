@@ -15,8 +15,12 @@ export interface Nav {
   home: () => void
 }
 
-export const routeKey = (r: Route) =>
-  r.view === 'app' ? `app:${r.appId}` : r.view === 'category' ? `cat:${r.category}` : r.view === 'collection' ? `col:${r.id}` : 'home'
+export function routeKey(r: Route) {
+  if (r.view === 'app') return `app:${r.appId}`
+  if (r.view === 'category') return `cat:${r.category}`
+  if (r.view === 'collection') return `col:${r.id}`
+  return 'home'
+}
 
 export const NavContext = createContext<Nav>({ go: () => {}, back: () => {}, home: () => {} })
 

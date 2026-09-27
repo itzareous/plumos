@@ -37,7 +37,9 @@ export function HomeView() {
               subtitle={col.subtitle}
               rows={2}
               action={
-                <SeeAll onClick={() => nav.go(cat ? { view: 'category', category: cat } : { view: 'collection', id })} />
+                <SeeAll
+                  onClick={() => nav.go(cat ? { view: 'category', category: cat } : { view: 'collection', id })}
+                />
               }
             >
               {col.apps.map((app) => (

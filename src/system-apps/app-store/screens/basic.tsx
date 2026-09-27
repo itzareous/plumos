@@ -93,12 +93,12 @@ export function GridMock({ c, r, id }: MockProps) {
         const row = Math.floor(i / cols)
         const x = 14 + col * (w + 7.2)
         const y = 74 + row * 100
-        const cx = x + 10 + r() * 36
-        const cy = y + 14 + r() * 50
+        const cx = x + 18 + r() * 20
+        const cy = y + 18 + r() * 40
         return (
           <g key={i}>
             <rect x={x} y={y} width={w} height={80} rx={7} fill={`url(#${id}-${(i + row) % 2 ? 'g2' : 'g'})`} />
-            <circle cx={cx} cy={cy} r={8 + r() * 14} fill="white" fillOpacity={0.12 + r() * 0.12} />
+            <circle cx={cx} cy={cy} r={6 + r() * 8} fill="white" fillOpacity={0.12 + r() * 0.12} />
             <rect x={x} y={y + 52} width={w} height={28} rx={7} fill="#000" fillOpacity="0.22" />
             {row === 0 && <Bar x={x} y={y + 86} w={w - 12 - r() * 16} o={0.35} />}
           </g>

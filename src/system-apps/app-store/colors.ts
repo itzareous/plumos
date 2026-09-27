@@ -33,14 +33,40 @@ function hexToRgb(hex: string): [number, number, number] {
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255]
 }
 
-/** How colourful a colour looks: saturation, discounted near black and white. */
-function vividness(hex: string) {
+function toHsl(hex: string): [number, number, number] {
   const [r, g, b] = hexToRgb(hex).map((v) => v / 255)
   const max = Math.max(r, g, b)
   const min = Math.min(r, g, b)
   const l = (max + min) / 2
-  const s = max === min ? 0 : (max - min) / (1 - Math.abs(2 * l - 1))
-  return s * (1 - Math.abs(l - 0.55) * 1.4)
+  if (max === min) return [0, 0, l]
+  const d = max - min
+  const s = d / (1 - Math.abs(2 * l - 1))
+  const h = max === r ? ((g - b) / d + (g < b ? 6 : 0)) : max === g ? (b - r) / d + 2 : (r - g) / d + 4
+  return [h * 60, s, l]
+}
+
+function fromHsl(h: number, s: number, l: number) {
+  const a = s * Math.min(l, 1 - l)
+  const f = (n: number) => {
+    const k = (n + h / 30) % 12
+    const c = l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1))
+    return Math.round(c * 255)
+      .toString(16)
+      .padStart(2, '0')
+  }
+  return `#${f(0)}${f(8)}${f(4)}`
+}
+
+/** How colourful a colour looks: saturation, discounted near black and white. */
+function vividness(hex: string) {
+  const [, s, l] = toHsl(hex)
+  return s * Math.max(0, 1 - Math.abs(l - 0.58) * 2.2)
+}
+
+/** Lifts dark colours so they read as highlights on the dark UI. */
+function brighten(hex: string) {
+  const [h, s, l] = toHsl(hex)
+  return l >= 0.55 ? hex : fromHsl(h, Math.min(s, 0.85), 0.62)
 }
 
 const cache = new Map<string, AppColors>()
@@ -59,7 +85,7 @@ export function appColors(app: AppInfo): AppColors {
     const to = stops[stops.length - 1]
     const candidates = [from, to, ...(app.icon.color ? [app.icon.color] : [])]
     const accent = candidates.reduce((best, c) => (vividness(c) > vividness(best) ? c : best))
-    result = { from, to, accent: vividness(accent) < 0.12 ? '#c4c8d4' : accent }
+    result = { from, to, accent: brighten(accent) }
   }
   cache.set(app.id, result)
   return result

@@ -50,11 +50,10 @@ function height(x, z) {
 
 // ---------- Camera ----------
 
-const env = (k, d) => (process.env[k] ? Number(process.env[k]) : d)
-const CAM_X = env('DX', 0)
-const CAM_Z = env('DZ', 350)
-const CAM_Y = env('DY', 38)
-const YAW = env('YAW', 0.08) // radians, + turns right
+const CAM_X = 0
+const CAM_Z = 350
+const CAM_Y = 38
+const YAW = 0.08 // radians, + turns right
 const CY = Math.cos(YAW)
 const SY = Math.sin(YAW)
 const HORIZON = 0.385 * H // design px
@@ -95,7 +94,7 @@ const norm = (v) => {
   const l = Math.hypot(v[0], v[1], v[2])
   return [v[0] / l, v[1] / l, v[2] / l]
 }
-const SUN = norm([-0.72, env('SUNY', 0.11), 0.67])
+const SUN = norm([-0.72, 0.11, 0.67]) // low sun, ahead and to the left
 const SUN_C = hex('#ffbf73').map((c) => c * 3.6)
 const SKY_C = hex('#7d8fd0').map((c) => c * 0.36)
 const BOUNCE_C = hex('#e08a52').map((c) => c * 0.1)

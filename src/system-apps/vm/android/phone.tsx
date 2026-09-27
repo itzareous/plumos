@@ -7,7 +7,7 @@ export type PhoneApp = Extract<
   'clock' | 'calendar' | 'photos' | 'weather' | 'notes' | 'calc' | 'music' | 'settings' | 'phone' | 'messages' | 'browser' | 'camera'
 >
 
-export const STATUS_H = 30
+export const STATUS_H = 36
 export const NAV_H = 44
 
 export interface PhoneApi {
