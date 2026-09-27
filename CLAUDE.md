@@ -49,5 +49,7 @@ Import from `@/…` (maps to `src/`). No other runtime deps without a good reaso
 - zustand v5: a selector must return stable references. `useStore((s) => s.items.filter(...))`
   returns a new array every call and crashes React with an update loop — select the raw
   value and derive with `useMemo` instead (or use `useShallow` from `zustand/react/shallow`).
+- `cn` only joins class names; it doesn't resolve Tailwind conflicts. `className="hidden sm:inline-flex"`
+  won't hide a `Button` (its own `inline-flex` wins) — use `max-sm:hidden`, or `!` to force a utility.
 - Keep components small and files focused; match the existing code style
   (no semicolons, single quotes, 2-space indent, 120 cols).
