@@ -99,7 +99,7 @@ const ListRow = memo(
         data-file-id={node.id}
         tabIndex={focused ? 0 : -1}
         className={cn(
-          'grid h-10 cursor-default items-center gap-3 rounded-[10px] px-3 text-[13px] outline-none even:bg-white/[0.022] focus-visible:ring-2 focus-visible:ring-white/40',
+          'grid h-10 cursor-default [-webkit-touch-callout:none] items-center gap-3 rounded-[10px] px-3 text-[13px] outline-none even:bg-white/[0.022] focus-visible:ring-2 focus-visible:ring-white/40',
           COLS,
           selected ? 'bg-accent-soft! text-white' : 'hover:bg-white/[0.045]',
           dropping && 'bg-accent-soft! ring-2 ring-accent ring-inset',

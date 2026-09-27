@@ -50,7 +50,7 @@ function Address({ value, label, caption }: { value: string; label: string; capt
     <div className="flex items-center gap-3 rounded-2xl bg-black/25 py-2 pr-2 pl-4 ring-1 ring-inset ring-white/[0.08]">
       <div className="min-w-0 flex-1">
         {caption && <p className="text-[11px] font-semibold tracking-wide text-white/40 uppercase">{caption}</p>}
-        <code className="selectable block truncate font-mono text-[14.5px] text-white">{value}</code>
+        <code className="selectable block font-mono text-[14.5px] break-all text-white">{value}</code>
       </div>
       <CopyButton text={value} label={label} />
     </div>

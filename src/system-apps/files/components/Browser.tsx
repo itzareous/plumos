@@ -5,6 +5,7 @@ import type { Drive } from '@/stores/storage'
 import { useUsers } from '@/stores/users'
 import { useFiles } from '@/stores/files'
 import { driveFolderId } from '../lib/seed'
+import { useMarquee } from '../lib/useMarquee'
 import { FAVORITES, RECENTS, TRASH, type FolderStats, type Loc } from '../lib/tree'
 import { DriveBanner, Notice } from './Banners'
 import { EmptyState } from './EmptyState'
@@ -30,6 +31,8 @@ interface BrowserProps {
   names: (n: FileNode) => string
   onColumns: (n: number) => void
   onBackgroundClick: () => void
+  /** Rubber-band selection started; returns where to send the ids under the box. */
+  onMarquee: (additive: boolean) => (ids: string[]) => void
   onBackgroundMenu: (e: MouseEvent) => void
   onUpload: () => void
   onNewFolder: () => void
@@ -58,6 +61,7 @@ export function Browser(p: BrowserProps) {
             ? 'imported'
             : 'folder'
 
+  const marquee = useMarquee(p.scrollRef, p.onMarquee)
   const onTrash = p.loc === TRASH
   const dateLabel = onTrash ? 'Date Deleted' : p.loc === RECENTS ? 'Last Used' : 'Date Modified'
   const dateOf = (n: FileNode) =>
@@ -67,7 +71,9 @@ export function Browser(p: BrowserProps) {
     <div
       ref={p.scrollRef}
       className="scrollbar-thin relative min-h-0 flex-1 overflow-y-auto px-3 pt-1 pb-36 sm:px-5 md:pb-28"
+      onPointerDown={marquee.onPointerDown}
       onClick={(e) => {
+        if (marquee.suppressClick.current) return
         if (!(e.target as HTMLElement).closest('[data-file-id], button, input, a')) p.onBackgroundClick()
       }}
       onContextMenu={(e) => {
@@ -76,6 +82,13 @@ export function Browser(p: BrowserProps) {
         p.onBackgroundMenu(e)
       }}
     >
+      {marquee.rect && (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute z-20 rounded-[6px] border border-accent/80 bg-accent/15"
+          style={{ left: marquee.rect.x, top: marquee.rect.y, width: marquee.rect.w, height: marquee.rect.h }}
+        />
+      )}
       {drive && !p.query && (
         <DriveBanner drive={drive} userName={p.userName} onShow={p.onShowFolder} onEject={() => p.onEject(drive.id)} />
       )}

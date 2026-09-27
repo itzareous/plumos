@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type DragEvent, type MouseEvent } from 'react'
+import { useEffect, useRef, useState, type DragEvent, type MouseEvent, type PointerEvent } from 'react'
 import type { FileNode } from '@/stores/files'
 import { cn } from '@/lib/cn'
 import { baseName } from '../lib/kinds'
@@ -10,6 +10,11 @@ export interface ItemHandlers {
   draggable: boolean
   onDragStart: (e: DragEvent) => void
   onDragEnd: (e: DragEvent) => void
+  /** Long-press on touch screens opens the item's menu. */
+  onPointerDown: (e: PointerEvent) => void
+  onPointerMove: (e: PointerEvent) => void
+  onPointerUp: (e: PointerEvent) => void
+  onPointerCancel: (e: PointerEvent) => void
   onDragOver?: (e: DragEvent) => void
   onDragLeave?: (e: DragEvent) => void
   onDrop?: (e: DragEvent) => void

@@ -180,10 +180,43 @@ export default function FilesApp({ params }: SheetProps) {
   })
   const idOf = (e: { currentTarget: EventTarget }) => (e.currentTarget as HTMLElement).dataset.fileId ?? ''
 
-  const handlers = useMemo<ItemHandlers>(
-    () => ({
+  const press = useRef<{ timer: number; x: number; y: number; fired: boolean } | null>(null)
+  const handlers = useMemo<ItemHandlers>(() => {
+    const cancelPress = () => {
+      if (press.current) clearTimeout(press.current.timer)
+    }
+    const openMenu = (id: string, x: number, y: number) => {
+      const { selection, ops, menu } = live.current
+      const ids = selection.selected.has(id) ? selection.ids : [id]
+      if (!selection.selected.has(id)) selection.selectOnly([id])
+      menu.openAt(x, y, ops.itemMenu(ids))
+    }
+    return {
+      onPointerDown: (e) => {
+        cancelPress()
+        if (e.pointerType !== 'touch') return
+        const id = idOf(e)
+        const { clientX: x, clientY: y } = e
+        const state = { x, y, fired: false, timer: 0 }
+        state.timer = window.setTimeout(() => {
+          state.fired = true
+          navigator.vibrate?.(8)
+          openMenu(id, x, y)
+        }, 480)
+        press.current = state
+      },
+      onPointerMove: (e) => {
+        const p = press.current
+        if (p && !p.fired && Math.hypot(e.clientX - p.x, e.clientY - p.y) > 8) cancelPress()
+      },
+      onPointerUp: cancelPress,
+      onPointerCancel: cancelPress,
       onClick: (e: MouseEvent) => {
         e.stopPropagation()
+        if (press.current?.fired) {
+          press.current = null
+          return
+        }
         const { selection, ops } = live.current
         const id = idOf(e)
         const touch = (e.nativeEvent as PointerEvent).pointerType === 'touch'
@@ -194,11 +227,7 @@ export default function FilesApp({ params }: SheetProps) {
       onContextMenu: (e: MouseEvent) => {
         e.preventDefault()
         e.stopPropagation()
-        const { selection, ops, menu } = live.current
-        const id = idOf(e)
-        const ids = selection.selected.has(id) ? selection.ids : [id]
-        if (!selection.selected.has(id)) selection.selectOnly([id])
-        menu.openAt(e.clientX, e.clientY, ops.itemMenu(ids))
+        openMenu(idOf(e), e.clientX, e.clientY)
       },
       draggable: true,
       onDragStart: (e) => {
@@ -209,9 +238,8 @@ export default function FilesApp({ params }: SheetProps) {
         dnd.startItemDrag(ids, e)
       },
       onDragEnd: () => live.current.dnd.endItemDrag(),
-    }),
-    [],
-  )
+    }
+  }, [])
 
   const folderHandlers = useRef(new Map<string, ItemHandlers>())
   const handlersFor = useCallback(
@@ -386,6 +414,10 @@ export default function FilesApp({ params }: SheetProps) {
           names={names}
           onColumns={(n) => (columns.current = n)}
           onBackgroundClick={selection.clear}
+          onMarquee={(additive) => {
+            const base = additive ? selection.ids : []
+            return (ids) => selection.selectOnly(additive ? [...new Set([...base, ...ids])] : ids)
+          }}
           onBackgroundMenu={(e) => menu.openAt(e.clientX, e.clientY, ops.backgroundMenu(setView, folder?.id ?? null))}
           onUpload={() => fileInput.current?.click()}
           onNewFolder={ops.newFolder}

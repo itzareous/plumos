@@ -143,7 +143,7 @@ export function Toolbar(p: ToolbarProps) {
       <div className="mt-2.5 flex items-center gap-2 pb-3 md:mt-2 md:gap-4">
         <Breadcrumbs crumbs={p.crumbs} onCrumb={p.onCrumb} bindDrop={p.bindDrop} dropTarget={p.dropTarget} />
         <span className="hidden shrink-0 text-[12.5px] text-white/40 tabular-nums lg:inline">{p.summary}</span>
-        <div className="relative min-w-0 flex-1 md:w-60 md:flex-none">
+        <div className="relative min-w-0 flex-1 md:w-44 md:flex-none lg:w-60">
           <Input
             ref={p.searchRef}
             icon={<Search size={15} />}

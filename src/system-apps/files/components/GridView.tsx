@@ -66,7 +66,7 @@ const GridItem = memo(
         aria-label={name}
         data-file-id={node.id}
         tabIndex={focused ? 0 : -1}
-        className="group min-w-0 cursor-default rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+        className="group min-w-0 cursor-default [-webkit-touch-callout:none] rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-white/40"
         {...handlers}
       >
         <motion.div
@@ -76,6 +76,7 @@ const GridItem = memo(
           className="flex flex-col items-center gap-1 px-1 pt-1.5 pb-2"
         >
           <div
+            data-hit
             className={cn(
               'relative flex h-[92px] w-full items-center justify-center rounded-[14px] transition-colors duration-150 sm:h-[100px]',
               selected ? 'bg-white/[0.11]' : 'group-hover:bg-white/[0.045]',
@@ -93,6 +94,7 @@ const GridItem = memo(
             <RenameField node={node} api={rename} className="w-full text-center" />
           ) : (
             <span
+              data-hit
               className={cn(
                 'line-clamp-2 max-w-full rounded-[6px] px-1.5 py-px text-center text-[12.5px] leading-[1.35] font-medium break-words transition-colors',
                 selected ? 'bg-accent text-black/90' : 'text-white/90',
