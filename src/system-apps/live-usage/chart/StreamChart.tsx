@@ -57,7 +57,7 @@ const TICKS = [0.5, 1]
  * inside the sheet also re-blurs the wallpaper behind it.
  */
 const GLIDE_MS = 900
-/** Redraw cap while gliding (~30 fps): at a few px per second it looks the same as 60. */
+/** Redraw cap while gliding (~30 fps): a step is a few px, so each frame moves well under a pixel. */
 const GLIDE_FRAME_MS = 32
 
 const easeInOut = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2)

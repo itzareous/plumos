@@ -1,5 +1,16 @@
 import type { ComponentType } from 'react'
-import { Globe, HardDrive, Info, LayoutGrid, Palette, Power as PowerIcon, RefreshCw, UserRound, Users, type LucideIcon } from 'lucide-react'
+import {
+  Globe,
+  HardDrive,
+  Info,
+  LayoutGrid,
+  Palette,
+  Power as PowerIcon,
+  RefreshCw,
+  UserRound,
+  Users,
+  type LucideIcon,
+} from 'lucide-react'
 import type { SectionId } from './lib/nav'
 import { About } from './sections/about/About'
 import { Account } from './sections/account/Account'
@@ -22,16 +33,39 @@ export interface SectionDef {
   component: ComponentType
 }
 
+const section = (
+  id: SectionId,
+  title: string,
+  icon: LucideIcon,
+  color: string,
+  component: ComponentType,
+  keywords: string,
+): SectionDef => ({ id, title, icon, color, component, keywords })
+
 export const SECTIONS: Record<SectionId, SectionDef> = {
-  account: { id: 'account', title: 'Account', icon: UserRound, color: '#8b7cf6', keywords: 'name profile password two-factor 2fa security device hostname', component: Account },
-  people: { id: 'people', title: 'People', icon: Users, color: '#f97316', keywords: 'users family members accounts admin roles shared space', component: People },
-  appearance: { id: 'appearance', title: 'Appearance', icon: Palette, color: '#a855f7', keywords: 'wallpaper background theme temperature celsius fahrenheit transparency', component: Appearance },
-  widgets: { id: 'widgets', title: 'Widgets', icon: LayoutGrid, color: '#0ea5e9', keywords: 'home screen clock storage memory photos files', component: Widgets },
-  storage: { id: 'storage', title: 'Storage', icon: HardDrive, color: '#10b981', keywords: 'drives disks pool mirror raid capacity hdd ssd usb', component: Storage },
-  sharing: { id: 'sharing', title: 'Network & sharing', icon: Globe, color: '#3b82f6', keywords: 'smb network drive finder explorer remote access address local devices', component: Sharing },
-  updates: { id: 'updates', title: 'Updates', icon: RefreshCw, color: '#6366f1', keywords: 'software version upgrade automatic', component: Updates },
-  about: { id: 'about', title: 'About', icon: Info, color: '#64748b', keywords: 'hostname os cpu processor memory ram uptime version hardware', component: About },
-  power: { id: 'power', title: 'Power', icon: PowerIcon, color: '#e11d48', keywords: 'restart reboot shut down turn off', component: Power },
+  account: section('account', 'Account', UserRound, '#8b7cf6', Account, 'name profile password two-factor 2fa security device hostname'),
+  people: section('people', 'People', Users, '#f97316', People, 'users family members accounts admin roles shared space'),
+  appearance: section(
+    'appearance',
+    'Appearance',
+    Palette,
+    '#a855f7',
+    Appearance,
+    'wallpaper background photo temperature celsius fahrenheit transparency',
+  ),
+  widgets: section('widgets', 'Widgets', LayoutGrid, '#0ea5e9', Widgets, 'home screen clock storage memory photos files'),
+  storage: section('storage', 'Storage', HardDrive, '#10b981', Storage, 'drives disks pool mirror raid capacity hdd ssd usb'),
+  sharing: section(
+    'sharing',
+    'Network & sharing',
+    Globe,
+    '#3b82f6',
+    Sharing,
+    'smb network drive finder explorer remote access address local devices',
+  ),
+  updates: section('updates', 'Updates', RefreshCw, '#6366f1', Updates, 'software version upgrade automatic'),
+  about: section('about', 'About', Info, '#64748b', About, 'hostname os cpu processor memory ram uptime version hardware'),
+  power: section('power', 'Power', PowerIcon, '#e11d48', Power, 'restart reboot shut down turn off'),
 }
 
 /** Sidebar groups, below the profile header (which is the Account section). */

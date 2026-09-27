@@ -45,7 +45,7 @@ export function SheetHost() {
             exit={{ y: '100%', opacity: 0.6, transition: { duration: 0.28, ease: [0.32, 0.72, 0, 1] } }}
             transition={{ type: 'spring', stiffness: 260, damping: 32, mass: 0.9 }}
             className={cn(
-              'glass-dark absolute inset-x-0 bottom-0 mx-auto flex w-full max-w-[1280px] flex-col overflow-hidden',
+              'sheet-surface absolute inset-x-0 bottom-0 mx-auto flex w-full max-w-[1280px] flex-col overflow-hidden',
               // Phones: full height (the dock hides). Larger screens: a floating panel that stops above the dock.
               'top-[max(env(safe-area-inset-top),12px)] rounded-t-[28px] sm:top-6 sm:bottom-[96px] sm:w-[calc(100%-48px)] sm:rounded-[28px]',
             )}

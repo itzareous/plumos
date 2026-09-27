@@ -61,6 +61,12 @@ interface StorageState {
 const TB = 1e12
 const GB = 1e9
 
+const DEMO_DRIVES: Drive[] = [
+  { id: 'nvme0', name: 'SSD 1', model: 'Samsung 990 EVO', size: 1 * TB, kind: 'nvme', location: 'internal', inPool: true, health: 'healthy', temperature: 41 },
+  { id: 'nvme1', name: 'SSD 2', model: 'Samsung 990 EVO', size: 1 * TB, kind: 'nvme', location: 'internal', inPool: true, health: 'healthy', temperature: 43 },
+  { id: 'usb0', name: 'Old Backup Drive', model: 'WD Elements', size: 500 * GB, kind: 'usb', location: 'external', inPool: false, health: 'healthy', temperature: 34 },
+]
+
 export const useStorage = create<StorageState>()(
   persist(
     (set, get) => {
@@ -89,14 +95,11 @@ export const useStorage = create<StorageState>()(
       }
 
       return {
-        drives: [
-          { id: 'nvme0', name: 'SSD 1', model: 'Samsung 990 EVO', size: 1 * TB, kind: 'nvme', location: 'internal', inPool: true, health: 'healthy', temperature: 41 },
-          { id: 'nvme1', name: 'SSD 2', model: 'Samsung 990 EVO', size: 1 * TB, kind: 'nvme', location: 'internal', inPool: true, health: 'healthy', temperature: 43 },
-          { id: 'usb0', name: 'Old Backup Drive', model: 'WD Elements', size: 500 * GB, kind: 'usb', location: 'external', inPool: false, health: 'healthy', temperature: 34 },
-        ],
+        drives: DEMO_DRIVES,
         poolMode: 'combined',
         task: null,
-        addToPool: (id) => set((s) => ({ drives: s.drives.map((d) => (d.id === id && d.location === 'internal' ? { ...d, inPool: true } : d)) })),
+        addToPool: (id) =>
+          set((s) => ({ drives: s.drives.map((d) => (d.id === id && d.location === 'internal' ? { ...d, inPool: true } : d)) })),
         removeFromPool: (id) => set((s) => ({ drives: s.drives.map((d) => (d.id === id ? { ...d, inPool: false } : d)) })),
         setPoolMode: (poolMode) => set({ poolMode }),
         connectDrive: (drive) => set((s) => ({ drives: [...s.drives.filter((d) => d.id !== drive.id), drive] })),

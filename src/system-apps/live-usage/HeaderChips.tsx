@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { motion } from 'motion/react'
 import { Activity, Clock3 } from 'lucide-react'
 import { formatDuration } from '@/lib/format'
 import type { SystemStats } from '@/stores/system'
@@ -29,7 +30,16 @@ export function HeaderChips({ stats, className }: { stats: SystemStats; classNam
         className={live ? 'text-white/90' : undefined}
       >
         <span className="relative flex size-2" aria-hidden>
-          {live && <span className="absolute inset-0 animate-ping rounded-full bg-emerald-400/70" />}
+          {/* One pulse per reading, so the dot beats with the data rather than on a loop. */}
+          {live && (
+            <motion.span
+              key={stats.timestamp}
+              className="absolute inset-0 rounded-full bg-emerald-400"
+              initial={{ scale: 1, opacity: 0.7 }}
+              animate={{ scale: 2.6, opacity: 0 }}
+              transition={{ duration: 1.1, ease: 'easeOut' }}
+            />
+          )}
           <span className={cn('relative size-2 rounded-full', live ? 'bg-emerald-400' : 'bg-amber-400')} />
         </span>
         {live ? (

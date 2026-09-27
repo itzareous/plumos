@@ -1,4 +1,4 @@
-import { useEffect, useRef, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useId, useRef, type FormEvent, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { X } from 'lucide-react'
@@ -35,6 +35,7 @@ export function Dialog({
   className?: string
 }) {
   const panel = useRef<HTMLDivElement>(null)
+  const titleId = useId()
   const onCloseRef = useRef(onClose)
   useEffect(() => {
     onCloseRef.current = onClose
@@ -79,7 +80,9 @@ export function Dialog({
     <>
       <div className="px-6 pt-7 pb-6 sm:px-7">
         {icon && <div className="mb-4">{icon}</div>}
-        <h2 className="pr-8 text-[19px] leading-tight font-semibold tracking-tight">{title}</h2>
+        <h2 id={titleId} className="pr-8 text-[19px] leading-tight font-semibold tracking-tight">
+          {title}
+        </h2>
         {description && <p className="mt-1.5 text-[13.5px] leading-relaxed text-white/60">{description}</p>}
         {children && <div className="mt-5">{children}</div>}
       </div>
@@ -106,7 +109,7 @@ export function Dialog({
             ref={panel}
             role="dialog"
             aria-modal="true"
-            aria-label={typeof title === 'string' ? title : undefined}
+            aria-labelledby={titleId}
             initial={{ opacity: 0, scale: 0.95, y: 16 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.97, y: 8, transition: { duration: 0.16 } }}

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import { AnimatePresence, motion } from 'motion/react'
+import { AnimatePresence, MotionConfig, motion } from 'motion/react'
 import { Logo } from '@/components/icons/Logo'
 import { useWindows } from '@/stores/windows'
 
@@ -91,15 +91,17 @@ export function showPowerOverlay(action: PowerAction) {
   document.body.appendChild(host)
   const root = createRoot(host)
   root.render(
-    <PowerOverlay
-      action={action}
-      onDone={() => {
-        // Unmount outside React's commit phase.
-        setTimeout(() => {
-          root.unmount()
-          host.remove()
-        })
-      }}
-    />,
+    <MotionConfig reducedMotion="user">
+      <PowerOverlay
+        action={action}
+        onDone={() => {
+          // Unmount outside React's commit phase.
+          setTimeout(() => {
+            root.unmount()
+            host.remove()
+          })
+        }}
+      />
+    </MotionConfig>,
   )
 }
