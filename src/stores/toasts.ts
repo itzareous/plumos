@@ -20,7 +20,7 @@ export const useToasts = create<ToastState>((set) => ({
 
 let nextId = 1
 
-/** Shows a small notification in the top-right corner for a few seconds. */
+/** Shows a small notification at the top of the screen for a few seconds. */
 export function toast(title: string, options: Omit<Toast, 'id' | 'title'> = {}) {
   const id = nextId++
   useToasts.setState((s) => ({ toasts: [...s.toasts.slice(-3), { id, title, ...options }] }))

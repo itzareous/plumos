@@ -47,21 +47,29 @@ function ContextMenu({ state, onClose }: { state: MenuState | null; onClose: () 
 
   useLayoutEffect(() => {
     if (!state || !ref.current) return
-    const { width, height } = ref.current.getBoundingClientRect()
+    // offsetWidth/Height ignore the entrance scale animation's transform.
+    const width = ref.current.offsetWidth
+    const height = ref.current.offsetHeight
     setPos({
-      x: Math.min(state.x, window.innerWidth - width - 8),
-      y: Math.min(state.y, window.innerHeight - height - 8),
+      x: Math.max(8, Math.min(state.x, window.innerWidth - width - 8)),
+      y: Math.max(8, Math.min(state.y, window.innerHeight - height - 8)),
     })
   }, [state])
 
   useEffect(() => {
     if (!state) return
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
-    window.addEventListener('keydown', onKey)
+    // Capture phase + preventDefault so Escape closes only the menu, not the sheet behind it.
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      e.preventDefault()
+      e.stopPropagation()
+      onClose()
+    }
+    window.addEventListener('keydown', onKey, { capture: true })
     window.addEventListener('blur', onClose)
     window.addEventListener('resize', onClose)
     return () => {
-      window.removeEventListener('keydown', onKey)
+      window.removeEventListener('keydown', onKey, { capture: true })
       window.removeEventListener('blur', onClose)
       window.removeEventListener('resize', onClose)
     }

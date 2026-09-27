@@ -80,7 +80,6 @@ export function readInput(list: FileList | null): DroppedTree {
 export const dragHasFiles = (e: React.DragEvent | DragEvent) => Array.from(e.dataTransfer?.types ?? []).includes('Files')
 
 export const INTERNAL_DRAG = 'application/x-plumos-files'
-export const dragIsInternal = (e: React.DragEvent) => Array.from(e.dataTransfer.types).includes(INTERNAL_DRAG)
 
 export async function copyText(text: string): Promise<boolean> {
   try {

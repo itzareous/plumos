@@ -72,13 +72,13 @@ export function DriveBanner({
               {state === 'copying' && job && (
                 <>
                   <div className="flex items-baseline justify-between gap-3">
-                    <h3 className="truncate text-[15px] font-semibold">Bringing {drive.name} home…</h3>
+                    <h3 className="min-w-0 text-[15px] leading-snug font-semibold">Bringing {drive.name} home…</h3>
                     <span className="shrink-0 text-[13px] font-semibold text-white/80 tabular-nums">
                       {Math.round((job.bytes / (job.totalBytes || 1)) * 100)}%
                     </span>
                   </div>
                   <ProgressBar value={job.bytes / (job.totalBytes || 1)} color="var(--color-accent)" className="mt-2.5 h-2" />
-                  <p className="mt-2 flex justify-between gap-3 text-[12px] text-white/50 tabular-nums">
+                  <p className="mt-2 flex flex-col gap-0.5 text-[12px] text-white/50 tabular-nums sm:flex-row sm:justify-between sm:gap-3">
                     <span className="truncate">Copying {job.current}</span>
                     <span className="shrink-0">
                       {job.copied.toLocaleString()} of {job.total.toLocaleString()} · {formatBytes(job.bytes)} of {formatBytes(job.totalBytes)}

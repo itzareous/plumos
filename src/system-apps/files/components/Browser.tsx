@@ -1,9 +1,8 @@
 import type { MouseEvent, RefObject } from 'react'
 import { Users } from 'lucide-react'
-import { ancestry, type FileNode, type SortPrefs, type ViewMode } from '@/stores/files'
+import { ancestry, useFiles, useTransfers, type FileNode, type SortPrefs, type ViewMode } from '@/stores/files'
 import type { Drive } from '@/stores/storage'
 import { useUsers } from '@/stores/users'
-import { useFiles } from '@/stores/files'
 import { driveFolderId } from '../lib/seed'
 import { useMarquee } from '../lib/useMarquee'
 import { FAVORITES, RECENTS, TRASH, type FolderStats, type Loc } from '../lib/tree'
@@ -12,6 +11,7 @@ import { EmptyState } from './EmptyState'
 import { GridView } from './GridView'
 import type { BindItem, RenameApi } from './items'
 import { ListView } from './ListView'
+import { StorageMeter } from './StorageMeter'
 
 interface BrowserProps {
   scrollRef: RefObject<HTMLDivElement | null>
@@ -46,6 +46,9 @@ export function Browser(p: BrowserProps) {
   const nodes = useFiles((s) => s.nodes)
   const chain = p.folder ? ancestry(nodes, p.folder.id) : []
   const drive = chain[0]?.id === 'external' ? p.drives.find((d) => driveFolderId(d.id) === chain[1]?.id) : undefined
+  const importing = useTransfers((s) => (drive ? Boolean(s.imports[drive.id]) : false))
+  // The import banner lives at the top of the drive; deeper in, it only shows while there's progress to see.
+  const showDriveBanner = Boolean(drive) && !p.query && (chain.length === 2 || importing)
   const inApps = chain[0]?.id === 'apps'
   const title = p.folder ? p.names(p.folder) : ''
 
@@ -89,7 +92,7 @@ export function Browser(p: BrowserProps) {
           style={{ left: marquee.rect.x, top: marquee.rect.y, width: marquee.rect.w, height: marquee.rect.h }}
         />
       )}
-      {drive && !p.query && (
+      {drive && showDriveBanner && (
         <DriveBanner drive={drive} userName={p.userName} onShow={p.onShowFolder} onEject={() => p.onEject(drive.id)} />
       )}
       {inApps && !p.query && (
@@ -123,6 +126,13 @@ export function Browser(p: BrowserProps) {
           dateLabel={dateLabel}
           dateOf={dateOf}
         />
+      )}
+
+      {/* Phones have no sidebar, so the storage meter lives at the bottom of your own space. */}
+      {p.loc === 'home' && !p.query && (
+        <div className="mx-auto mt-8 max-w-[420px] md:hidden">
+          <StorageMeter />
+        </div>
       )}
     </div>
   )

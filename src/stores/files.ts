@@ -42,9 +42,6 @@ export interface SortPrefs {
   dir: 'asc' | 'desc'
 }
 
-export const ROOTS = ['home', 'shared', 'apps', 'external'] as const
-export const ROOT_PATHS: Record<string, string> = { home: 'Home', shared: 'Shared', apps: 'Apps', external: 'External' }
-
 // ---------- In-memory file contents ----------
 
 const blobs = new Map<string, Blob>()

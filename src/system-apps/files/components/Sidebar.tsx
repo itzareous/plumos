@@ -28,7 +28,7 @@ interface SidebarProps {
 const GROUPS: { key: NavEntry['group']; title?: string }[] = [
   { key: 'places' },
   { key: 'locations', title: 'Locations' },
-  { key: 'apps', title: 'Apps' },
+  { key: 'apps' },
 ]
 
 export function Sidebar({ entries, active, dropTarget, onNavigate, onEject, onConnect, bindDrop }: SidebarProps) {
@@ -42,7 +42,7 @@ export function Sidebar({ entries, active, dropTarget, onNavigate, onEject, onCo
           const list = entries.filter((e) => e.group === key)
           if (key === 'apps' && !list.length) return null
           return (
-            <div key={key} className={cn(title && 'mt-5')}>
+            <div key={key} className={cn(title && 'mt-5', key === 'apps' && 'mt-3 border-t border-white/[0.06] pt-3')}>
               {title && <h2 className="mb-1 px-3 text-[11.5px] font-semibold tracking-wide text-white/40 uppercase">{title}</h2>}
               {key === 'locations' && !list.length && (
                 <p className="px-3 py-1.5 text-[12.5px] leading-snug text-white/35">

@@ -61,4 +61,13 @@ export function useKeyboard(actions: KeyActions) {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [])
+
+  // Escape with a context menu open should close just the menu, not the whole sheet.
+  useEffect(() => {
+    const guard = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && document.querySelector('[role="menu"]')) e.preventDefault()
+    }
+    window.addEventListener('keydown', guard, { capture: true })
+    return () => window.removeEventListener('keydown', guard, { capture: true })
+  }, [])
 }

@@ -5,7 +5,7 @@ import { useSystem } from '@/stores/system'
 import { formatBytes } from '@/lib/format'
 
 const SEGMENTS = [
-  { key: 'media', label: 'Photos & videos', color: '#ffb057' },
+  { key: 'media', label: 'Photos', color: '#ffb057' },
   { key: 'docs', label: 'Documents', color: '#5b9dff' },
   { key: 'apps', label: 'Apps', color: '#a77bf5' },
   { key: 'other', label: 'Other', color: 'rgb(255 255 255 / 0.45)' },

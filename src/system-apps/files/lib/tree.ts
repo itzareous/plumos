@@ -8,6 +8,7 @@ import {
   type FileNode,
   type SortPrefs,
 } from '@/stores/files'
+import { formatBytes } from '@/lib/format'
 import { KIND_ORDER } from './kinds'
 
 /** Where the Files window is looking: a folder id, or one of the smart views. */
@@ -144,3 +145,29 @@ export function formatFileDate(ts: number, withTime = true): string {
 }
 
 export const itemsLabel = (n: number) => `${n.toLocaleString()} ${n === 1 ? 'item' : 'items'}`
+
+/** The small caption under an item: where it was deleted from, when it was used, or its size. */
+export function itemSubtitle(node: FileNode, loc: Loc, stats: Map<string, FolderStats>, userName: string): string {
+  if (node.trashed) {
+    const from = node.trashed.path.split('/').filter(Boolean)
+    return `From ${from.length === 1 && from[0] === 'Home' ? userName : (from.pop() ?? '')}`
+  }
+  if (loc === RECENTS) return formatFileDate(recency(node), false)
+  if (node.kind === 'folder') return itemsLabel(stats.get(node.id)?.count ?? 0)
+  return formatBytes(node.size)
+}
+
+/** "12 items · 3.4 GB", "3 of 12 selected · 1.2 GB" or "4 results". */
+export function summarize(
+  nodes: Nodes,
+  stats: Map<string, FolderStats>,
+  opts: { count: number; selected: string[]; folderId?: string; searching: boolean },
+): string {
+  const { count, selected, folderId, searching } = opts
+  const sizeOf = (id: string) => (nodes[id]?.kind === 'folder' ? (stats.get(id)?.bytes ?? 0) : (nodes[id]?.size ?? 0))
+  if (selected.length) {
+    return `${selected.length.toLocaleString()} of ${count.toLocaleString()} selected · ${formatBytes(selected.reduce((a, id) => a + sizeOf(id), 0))}`
+  }
+  if (searching) return `${count.toLocaleString()} ${count === 1 ? 'result' : 'results'}`
+  return folderId ? `${itemsLabel(count)} · ${formatBytes(stats.get(folderId)?.bytes ?? 0)}` : itemsLabel(count)
+}

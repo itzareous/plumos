@@ -5,6 +5,7 @@ import { ProgressBar } from '@/components/ui/controls'
 import { displayName, useFiles, useTransfers, type UploadItem } from '@/stores/files'
 import { cn } from '@/lib/cn'
 import { formatBytes } from '@/lib/format'
+import { usePhone } from '../lib/hooks'
 import { FileIcon } from './FileIcon'
 
 const MAX_ROWS = 60
@@ -22,7 +23,10 @@ export function UploadTray({ onShow }: { onShow: (folderId: string) => void }) {
   const lastTarget = useTransfers((s) => s.lastTarget)
   const clear = useTransfers((s) => s.clearFinished)
   const target = useFiles((s) => (lastTarget ? s.nodes[lastTarget] : undefined))
-  const [collapsed, setCollapsed] = useState(false)
+  // On phones the list starts folded away so it doesn't cover the files.
+  const phone = usePhone()
+  const [folded, setFolded] = useState<boolean | null>(null)
+  const collapsed = folded ?? phone
   const [hovered, setHovered] = useState(false)
 
   const totals = useMemo(() => {
@@ -99,7 +103,7 @@ export function UploadTray({ onShow }: { onShow: (folderId: string) => void }) {
             )}
             <button
               type="button"
-              onClick={() => setCollapsed((c) => !c)}
+              onClick={() => setFolded(!collapsed)}
               aria-label={collapsed ? 'Show uploads' : 'Hide upload list'}
               aria-expanded={!collapsed}
               className="flex size-7 items-center justify-center rounded-full text-white/60 transition outline-none hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-white/60"

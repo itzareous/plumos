@@ -139,11 +139,27 @@ export function Toolbar(p: ToolbarProps) {
       </div>
 
       <div className="mt-2 md:hidden">{p.children}</div>
+      {p.crumbs.length > 1 && (
+        <Breadcrumbs
+          crumbs={p.crumbs}
+          onCrumb={p.onCrumb}
+          bindDrop={p.bindDrop}
+          dropTarget={p.dropTarget}
+          max={3}
+          className="mt-2 -ml-1.5 flex lg:hidden"
+        />
+      )}
 
       <div className="mt-2.5 flex items-center gap-2 pb-3 md:mt-2 md:gap-4">
-        <Breadcrumbs crumbs={p.crumbs} onCrumb={p.onCrumb} bindDrop={p.bindDrop} dropTarget={p.dropTarget} />
-        <span className="hidden shrink-0 text-[12.5px] text-white/40 tabular-nums lg:inline">{p.summary}</span>
-        <div className="relative min-w-0 flex-1 md:w-44 md:flex-none lg:w-60">
+        <Breadcrumbs
+          crumbs={p.crumbs}
+          onCrumb={p.onCrumb}
+          bindDrop={p.bindDrop}
+          dropTarget={p.dropTarget}
+          className="hidden min-w-0 flex-1 lg:flex"
+        />
+        <span className="hidden shrink-0 text-[12.5px] text-white/40 tabular-nums xl:inline">{p.summary}</span>
+        <div className="relative min-w-0 flex-1 lg:w-56 lg:flex-none xl:w-60">
           <Input
             ref={p.searchRef}
             icon={<Search size={15} />}
@@ -195,17 +211,20 @@ function Breadcrumbs({
   onCrumb,
   bindDrop,
   dropTarget,
+  max = 4,
+  className,
 }: {
   crumbs: Crumb[]
   onCrumb: (loc: Loc) => void
   bindDrop: BindDrop
   dropTarget: Loc | null
+  /** Longer paths keep the first and the last two, with the middle collapsed. */
+  max?: number
+  className?: string
 }) {
-  // Long paths keep the first and the last two, with the middle collapsed.
-  const collapsed = crumbs.length > 4
-  const shown = collapsed ? [crumbs[0], null, ...crumbs.slice(-2)] : crumbs
+  const shown = crumbs.length > max ? [crumbs[0], null, ...crumbs.slice(-2)] : crumbs
   return (
-    <nav aria-label="Path" className="hidden min-w-0 flex-1 items-center md:flex">
+    <nav aria-label="Path" className={cn('min-w-0 items-center', className)}>
       <ol className="flex min-w-0 items-center gap-0.5 text-[13px]">
         {shown.map((c, i) => (
           <li key={c?.loc ?? 'more'} className={cn('flex min-w-0 items-center gap-0.5', i === shown.length - 1 ? 'shrink' : 'shrink-[2]')}>

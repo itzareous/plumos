@@ -50,7 +50,7 @@ export function ListView({ items, bind, rename, names, label, stats, sort, onSor
     <div role="listbox" aria-multiselectable="true" aria-label={label} className="min-w-0">
       <div
         className={cn(
-          'sticky top-0 z-10 -mx-2 mb-1 grid items-center gap-3 border-b border-white/[0.06] bg-[rgb(24_24_32/0.82)] px-5 py-1.5 backdrop-blur-xl sm:-mx-3',
+          'sticky top-0 z-10 -mx-2 mb-1 grid items-center gap-3 border-b border-white/[0.06] bg-[rgb(24_24_32/0.82)] px-5 py-1.5 backdrop-blur-xl sm:-mx-3 sm:px-6',
           COLS,
         )}
       >

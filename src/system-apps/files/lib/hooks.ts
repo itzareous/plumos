@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import type { Loc } from './tree'
 
 /** Back/forward history for the file browser. */
@@ -14,13 +14,21 @@ export function useHistoryNav(initial: Loc) {
     [],
   )
   const replace = useCallback(
-    (next: Loc) => setState((s) => ({ stack: s.stack.map((l, i) => (i === s.index ? next : l)), index: s.index })),
+    (next: Loc) =>
+      setState((s) =>
+        s.stack[s.index] === next ? s : { stack: s.stack.map((l, i) => (i === s.index ? next : l)), index: s.index },
+      ),
     [],
   )
   const back = useCallback(() => setState((s) => (s.index > 0 ? { ...s, index: s.index - 1 } : s)), [])
   const forward = useCallback(() => setState((s) => (s.index < s.stack.length - 1 ? { ...s, index: s.index + 1 } : s)), [])
 
-  return { loc, go, replace, back, forward, canBack: state.index > 0, canForward: state.index < state.stack.length - 1 }
+  const canBack = state.index > 0
+  const canForward = state.index < state.stack.length - 1
+  return useMemo(
+    () => ({ loc, go, replace, back, forward, canBack, canForward }),
+    [loc, go, replace, back, forward, canBack, canForward],
+  )
 }
 
 interface Modifiers {
@@ -119,3 +127,19 @@ export function useSelection(order: string[]) {
 }
 
 export type Selection = ReturnType<typeof useSelection>
+
+/** Tracks a CSS media query, e.g. `useMediaQuery('(max-width: 767px)')`. */
+export function useMediaQuery(query: string): boolean {
+  const subscribe = useCallback(
+    (notify: () => void) => {
+      const mql = window.matchMedia(query)
+      mql.addEventListener('change', notify)
+      return () => mql.removeEventListener('change', notify)
+    },
+    [query],
+  )
+  return useSyncExternalStore(subscribe, () => window.matchMedia(query).matches)
+}
+
+/** Phones get the compact layout (the sidebar turns into a strip of chips). */
+export const usePhone = () => useMediaQuery('(max-width: 767px)')

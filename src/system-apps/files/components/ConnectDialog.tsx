@@ -25,7 +25,7 @@ function CopyButton({ text, label }: { text: string; label: string }) {
       }}
       aria-label={`Copy ${label}`}
       className={cn(
-        'flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[12.5px] font-semibold transition outline-none focus-visible:ring-2 focus-visible:ring-white/60 active:scale-95',
+        'flex h-8 min-w-8 shrink-0 items-center justify-center gap-1.5 rounded-full px-2.5 text-[12.5px] font-semibold transition outline-none focus-visible:ring-2 focus-visible:ring-white/60 active:scale-95 sm:px-3',
         copied ? 'bg-emerald-400/20 text-emerald-300' : 'bg-white/10 text-white/90 hover:bg-white/20',
       )}
     >
@@ -40,7 +40,7 @@ function CopyButton({ text, label }: { text: string; label: string }) {
           {copied ? <Check size={14} strokeWidth={3} /> : <Copy size={13} />}
         </motion.span>
       </AnimatePresence>
-      {copied ? 'Copied' : 'Copy'}
+      <span className="max-sm:sr-only">{copied ? 'Copied' : 'Copy'}</span>
     </button>
   )
 }
@@ -50,7 +50,7 @@ function Address({ value, label, caption }: { value: string; label: string; capt
     <div className="flex items-center gap-3 rounded-2xl bg-black/25 py-2 pr-2 pl-4 ring-1 ring-inset ring-white/[0.08]">
       <div className="min-w-0 flex-1">
         {caption && <p className="text-[11px] font-semibold tracking-wide text-white/40 uppercase">{caption}</p>}
-        <code className="selectable block font-mono text-[14.5px] break-all text-white">{value}</code>
+        <code className="selectable block font-mono text-[13.5px] [overflow-wrap:anywhere] text-white sm:text-[14.5px]">{value}</code>
       </div>
       <CopyButton text={value} label={label} />
     </div>
@@ -103,10 +103,6 @@ export function ConnectDialog({ open, onClose }: { open: boolean; onClose: () =>
           </div>
         </div>
 
-        <div className="mt-5">
-          <Address value={smb} label="network address" caption="Network address" />
-        </div>
-
         <div className="mt-5 flex justify-center">
           <Segmented
             value={platform}
@@ -116,6 +112,10 @@ export function ConnectDialog({ open, onClose }: { open: boolean; onClose: () =>
               { value: 'windows', label: 'Windows' },
             ]}
           />
+        </div>
+
+        <div className="mt-4">
+          <Address key={platform} value={platform === 'mac' ? smb : unc} label="network address" caption="Network address" />
         </div>
 
         <AnimatePresence mode="wait" initial={false}>
@@ -145,8 +145,8 @@ export function ConnectDialog({ open, onClose }: { open: boolean; onClose: () =>
                     Open <Key>File Explorer</Key>, right-click <Key>This PC</Key> and choose <Key>Map network drive</Key>.
                   </>,
                   <div className="flex flex-col gap-2">
-                    <span>Choose a drive letter and enter this folder:</span>
-                    <Address value={`${unc}\\${userName}`} label="Windows address" />
+                    <span>Choose a drive letter and enter your folder:</span>
+                    <Address value={`${unc}\\${userName}`} label="folder address" />
                     <span className="text-white/50">
                       Map <code className="font-mono text-white/80">{unc}\Shared</code> the same way for family files.
                     </span>

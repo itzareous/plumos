@@ -7,9 +7,12 @@ import { FolderIcon } from '@/components/icons/FolderIcon'
 import { blobUrl, getBlob, hasBlob, type FileNode } from '@/stores/files'
 import { cn } from '@/lib/cn'
 import { formatBytes } from '@/lib/format'
-import { kindLabel } from '../lib/kinds'
+import { usePhone } from '../lib/hooks'
+import { extensionOf, kindLabel } from '../lib/kinds'
 import { formatFileDate, hashString, itemsLabel, type FolderStats } from '../lib/tree'
+import { DocPreview, hasDocPreview } from './DocPreview'
 import { FileIcon } from './FileIcon'
+import { Markdown } from './Markdown'
 import { useEscapeLayer } from './Modal'
 import { PhotoArt, photoIsPortrait } from './PhotoArt'
 import { seedOf } from './Thumb'
@@ -30,6 +33,7 @@ interface QuickLookProps {
 export function QuickLook(p: QuickLookProps) {
   const { node, list } = p
   useEscapeLayer(Boolean(node), p.onClose)
+  const phone = usePhone()
   const index = node ? list.findIndex((n) => n.id === node.id) : -1
   const prev = index > 0 ? list[index - 1] : null
   const next = index >= 0 && index < list.length - 1 ? list[index + 1] : null
@@ -105,6 +109,15 @@ export function QuickLook(p: QuickLookProps) {
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.98, transition: { duration: 0.12 } }}
                 transition={{ type: 'spring', stiffness: 360, damping: 32 }}
+                // Swipe between files on touch screens.
+                drag={phone && list.length > 1 ? 'x' : false}
+                dragConstraints={{ left: 0, right: 0 }}
+                dragElastic={0.5}
+                onDragEnd={(_, info) => {
+                  const swipe = info.offset.x + info.velocity.x * 0.2
+                  if (swipe < -90 && next) p.onNavigate(next.id)
+                  else if (swipe > 90 && prev) p.onNavigate(prev.id)
+                }}
                 className="flex h-full w-full items-center justify-center"
               >
                 <Preview node={node} size={size} stats={p.stats} name={p.displayName(node)} />
@@ -199,6 +212,8 @@ function Preview({ node, size, stats, name }: { node: FileNode; size: number; st
 
   if (node.kind === 'text' || node.kind === 'code') return <TextPreview node={node} name={name} size={size} />
 
+  if (hasDocPreview(node)) return <DocPreview node={node} />
+
   return (
     <IconCard art={<FileIcon kind={node.kind} name={node.name} size={180} />} title={name}>
       {kindLabel(node.kind, node.name)} · {formatBytes(size)}
@@ -272,6 +287,7 @@ function TextPreview({ node, name, size }: { node: FileNode; name: string; size:
   }, [node.id, node.content, node.uploaded, tooBig])
 
   if (text === null) {
+    if (hasDocPreview(node)) return <DocPreview node={node} />
     return (
       <IconCard art={<FileIcon kind={node.kind} name={node.name} size={180} />} title={name}>
         {kindLabel(node.kind, node.name)} · {formatBytes(size)}
@@ -279,14 +295,14 @@ function TextPreview({ node, name, size }: { node: FileNode; name: string; size:
       </IconCard>
     )
   }
-  return (
-    <pre
-      className={cn(
-        'selectable scrollbar-thin max-h-full w-full max-w-[780px] overflow-auto rounded-2xl bg-[#15151c] p-6 text-[13.5px] leading-relaxed whitespace-pre-wrap text-white/85 shadow-2xl ring-1 ring-white/10 sm:p-8',
-        node.kind === 'code' ? 'font-mono text-[12.5px]' : 'font-sans',
-      )}
-    >
-      {text}
-    </pre>
-  )
+  const surface =
+    'selectable scrollbar-thin max-h-full w-full max-w-[780px] overflow-auto rounded-2xl bg-[#15151c] p-6 text-[14px] leading-relaxed text-white/85 shadow-2xl ring-1 ring-white/10 sm:p-9'
+  if (extensionOf(node.name) === 'md') {
+    return (
+      <div className={surface}>
+        <Markdown text={text} />
+      </div>
+    )
+  }
+  return <pre className={cn(surface, 'whitespace-pre-wrap', node.kind === 'code' ? 'font-mono text-[12.5px]' : 'font-sans')}>{text}</pre>
 }

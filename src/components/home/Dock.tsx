@@ -4,6 +4,7 @@ import { Glass } from '@/components/ui/Glass'
 import { iconArt } from '@/components/icons/art'
 import { sheetRegistry } from '@/system-apps/registry'
 import { useWindows, type SheetId } from '@/stores/windows'
+import { cn } from '@/lib/cn'
 
 const BASE = 50
 const MAX = 76
@@ -18,11 +19,18 @@ export function Dock() {
   const active = useWindows((s) => s.sheet?.id)
   const open = useWindows((s) => s.open)
   const close = useWindows((s) => s.close)
+  const sheetOpen = active !== undefined
   // Magnification only makes sense with a mouse.
   const [canHover] = useState(() => window.matchMedia('(hover: hover) and (pointer: fine)').matches)
 
   return (
-    <nav className="fixed inset-x-0 bottom-3 z-50 flex justify-center px-3 pb-[env(safe-area-inset-bottom)] sm:bottom-4">
+    <nav
+      className={cn(
+        'fixed inset-x-0 bottom-3 z-50 flex justify-center px-3 pb-[env(safe-area-inset-bottom)] transition-transform duration-300 ease-(--ease-spring) sm:bottom-4',
+        // On phones an open app takes the whole screen, so the dock steps aside.
+        sheetOpen && 'max-sm:pointer-events-none max-sm:translate-y-[160%]',
+      )}
+    >
       <Glass
         radius={24}
         refraction={50}

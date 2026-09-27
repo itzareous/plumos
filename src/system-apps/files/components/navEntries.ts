@@ -22,7 +22,7 @@ export function navEntries(userName: string, drives: Drive[], trashCount: number
     { loc: FAVORITES, label: 'Favorites', icon: Star, group: 'places' },
     { loc: TRASH, label: 'Trash', icon: Trash2, group: 'places', count: trashCount || undefined },
     ...drives.map<NavEntry>((d) => ({ loc: driveFolderId(d.id), label: d.name, icon: HardDrive, group: 'locations', drive: d })),
-    { loc: 'apps', label: 'App data', icon: Boxes, group: 'apps', title: 'Data your apps keep on this server' },
+    { loc: 'apps', label: 'Apps', icon: Boxes, group: 'apps', title: 'Data your apps keep on this server' },
   ]
 }
 
