@@ -1,9 +1,10 @@
 import { useState, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { Check, Copy, MonitorSmartphone, UserRound } from 'lucide-react'
+import { Check, Copy, MonitorSmartphone, TriangleAlert, UserRound } from 'lucide-react'
 import { Segmented } from '@/components/ui/controls'
 import { useSettings } from '@/stores/settings'
 import { useUsers } from '@/stores/users'
+import { usePrefs } from '@/system-apps/settings/lib/prefs'
 import { cn } from '@/lib/cn'
 import { copyText } from '../lib/io'
 import { Modal } from './Modal'
@@ -78,6 +79,8 @@ export function ConnectDialog({ open, onClose }: { open: boolean; onClose: () =>
   const deviceName = useSettings((s) => s.deviceName) || 'plumos'
   const userName = useSettings((s) => s.userName)
   const members = useUsers((s) => s.members)
+  const fileSharing = usePrefs((s) => s.fileSharing)
+  const setPrefs = usePrefs((s) => s.set)
   const [platform, setPlatform] = useState<Platform>(guessPlatform)
 
   const host = `${deviceName.toLowerCase().replace(/[^a-z0-9-]+/g, '-')}.local`
@@ -102,6 +105,22 @@ export function ConnectDialog({ open, onClose }: { open: boolean; onClose: () =>
             </p>
           </div>
         </div>
+
+        {!fileSharing && (
+          <div className="mt-5 flex items-center gap-3 rounded-2xl bg-amber-400/10 px-4 py-3 ring-1 ring-inset ring-amber-300/20">
+            <TriangleAlert size={18} className="shrink-0 text-amber-300" />
+            <p className="min-w-0 flex-1 text-[13px] leading-snug text-amber-100/90">
+              Network sharing is off, so computers can't connect right now.
+            </p>
+            <button
+              type="button"
+              onClick={() => setPrefs({ fileSharing: true })}
+              className="shrink-0 rounded-full bg-amber-300 px-3 py-1.5 text-[12.5px] font-semibold text-black transition hover:bg-amber-200 active:scale-95"
+            >
+              Turn on
+            </button>
+          </div>
+        )}
 
         <div className="mt-5 flex justify-center">
           <Segmented
