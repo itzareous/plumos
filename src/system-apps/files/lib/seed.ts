@@ -98,10 +98,13 @@ function createBuilder(seed: number, nodes: Record<string, FileNode>, prefix: st
     })
 
   /** A run of camera photos, e.g. IMG_4821.HEIC … */
-  const camera = (parent: string, range: Range, count: number, pattern: (i: number) => string) => {
-    const start = Math.floor(r() * 3000) + 1000
+  const camera = (parent: string, range: Range, count: number, pattern: (n: number, t: number, index: number) => string) => {
+    let n = Math.floor(r() * 3000) + 1000
     const times = Array.from({ length: count }, () => within(range)).sort((a, b) => a - b)
-    times.forEach((t, i) => file(parent, pattern(start + i * (1 + Math.floor(r() * 4))), t))
+    times.forEach((t, index) => {
+      file(parent, pattern(n, t, index + 1), t)
+      n += 1 + Math.floor(r() * 4)
+    })
   }
 
   return { folder, file, files, camera, within, r }
@@ -230,6 +233,10 @@ export function seedFiles(now = Date.now()): Record<string, FileNode> {
     const d = new Date(t)
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
   }
+  const clock = (t: number) => {
+    const d = new Date(t)
+    return `${pad(d.getHours())}.${pad(d.getMinutes())}.${pad(d.getSeconds())}`
+  }
 
   // ---- Roots
   const home = folder(null, 'Home', { id: 'home' })
@@ -293,7 +300,7 @@ export function seedFiles(now = Date.now()): Record<string, FileNode> {
   camera(iceland, iceTrip, 22, (i) => `IMG_${i}.HEIC`)
   files(iceland, iceTrip, ['Waterfall timelapse.mov', 'Black sand beach.mov'])
   const screenshots = folder(photos, 'Screenshots')
-  camera(screenshots, ago(90), 7, (i) => `Screenshot ${i}.png`)
+  camera(screenshots, ago(90), 7, (_, t) => `Screenshot ${stamp(t)} at ${clock(t)}.png`)
   camera(photos, ago(45), 26, (i) => `IMG_${i + 3000}.HEIC`)
   files(photos, ago(200), ['Profile picture.png'])
 
@@ -307,7 +314,7 @@ export function seedFiles(now = Date.now()): Record<string, FileNode> {
   ])
 
   const sketches = folder(music, 'Piano sketches')
-  camera(sketches, ago(150), 8, (i) => `Sketch ${pad((i % 12) + 1)}.m4a`)
+  camera(sketches, ago(150), 8, (_, _t, i) => `Sketch ${pad(i)}.m4a`)
   files(music, ago(160), [
     'Field recording — rain on the roof.flac',
     'Voice memo — grocery list.m4a',
@@ -324,7 +331,7 @@ export function seedFiles(now = Date.now()): Record<string, FileNode> {
   const lake = folder(familyPhotos, 'Summer at the lake')
   camera(lake, [now - 70 * DAY, now - 62 * DAY], 18, (i) => `IMG_${i}.jpg`)
   files(lake, [now - 70 * DAY, now - 62 * DAY], ['Jumping off the dock.mp4', 'Canoe race.mp4'])
-  camera(familyPhotos, ago(400), 12, (i) => `Family ${pad(i % 100)}.jpg`)
+  camera(familyPhotos, ago(400), 12, (_, _t, i) => `Grandma's 80th ${pad(i)}.jpg`)
 
   const recipes = folder(shared, 'Recipes')
   files(recipes, ago(500), [
@@ -439,7 +446,7 @@ export function seedFiles(now = Date.now()): Record<string, FileNode> {
   files(plex, ago(30), ['Preferences.xml'])
 
   // ---- The old USB backup drive
-  seedDriveInto(nodes, 'usb0', 'Old Backup Drive', b)
+  seedDriveInto('usb0', 'Old Backup Drive', b)
 
   settleFolderDates(nodes, now)
   return nodes
@@ -447,7 +454,7 @@ export function seedFiles(now = Date.now()): Record<string, FileNode> {
 
 type Builder = ReturnType<typeof createBuilder>
 
-function seedDriveInto(nodes: Record<string, FileNode>, driveId: string, name: string, b: Builder) {
+function seedDriveInto(driveId: string, name: string, b: Builder) {
   const { folder, files, camera } = b
   const root = folder('external', name, { id: driveFolderId(driveId) })
   const year = (y: number): Range => [new Date(y, 1, 1).getTime(), new Date(y, 10, 28).getTime()]
@@ -467,7 +474,7 @@ function seedDriveInto(nodes: Record<string, FileNode>, driveId: string, name: s
     'Letters from Grandpa, 1987.pdf',
     'Report card 1994.pdf',
   ])
-  camera(scans, year(2013), 6, (i) => `Old family photo ${pad(i % 100)}.tif`)
+  camera(scans, year(2013), 6, (_, _t, i) => `Old family photo ${pad(i)}.tif`)
 
   const old = folder(root, 'Old Documents')
   files(old, year(2010), [
@@ -478,7 +485,7 @@ function seedDriveInto(nodes: Record<string, FileNode>, driveId: string, name: s
     ['Road trip itinerary.txt', { content: ITINERARY }],
   ])
   const mixtape = folder(old, 'Mixtape 2008')
-  camera(mixtape, year(2008), 8, (i) => `Track ${pad((i % 12) + 1)}.mp3`)
+  camera(mixtape, year(2008), 8, (_, _t, i) => `Track ${pad(i)}.mp3`)
 }
 
 export const driveFolderId = (driveId: string) => `drive:${driveId}`
@@ -498,7 +505,7 @@ export function seedDrive(driveId: string, name: string, now = Date.now()): Reco
   const docs = folder(root, 'Documents')
   files(docs, range, ['Notes.txt', 'Budget.xlsx', 'Letter.docx', 'Manual.pdf'])
   const tunes = folder(root, 'Music')
-  camera(tunes, range, 6, (i) => `Track ${pad((i % 12) + 1)}.mp3`)
+  camera(tunes, range, 6, (_, _t, i) => `Track ${pad(i)}.mp3`)
   settleFolderDates(nodes, now)
   return nodes
 }
