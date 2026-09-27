@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { Download, Image, Search, UserRound } from 'lucide-react'
+import { Download, Image, RotateCcw, Search, UserRound } from 'lucide-react'
 import { catalog } from '@/apps/catalog'
 import { AppIcon } from '@/components/icons/AppIcon'
 import { iconArt } from '@/components/icons/art'
 import { sheetRegistry } from '@/system-apps/registry'
 import { useApps } from '@/stores/apps'
+import { useSettings } from '@/stores/settings'
 import { useWindows, type SheetId } from '@/stores/windows'
 import { launchApp } from '@/lib/launch'
 import { cn } from '@/lib/cn'
@@ -94,6 +95,14 @@ function Palette({ onClose, openSheet }: { onClose: () => void; openSheet: (id: 
         icon: <ActionIcon><UserRound size={16} /></ActionIcon>,
         keywords: 'account profile user',
         run: () => openSheet('settings', { section: 'account' }),
+      },
+      {
+        id: 'act:setup',
+        group: 'Actions',
+        title: 'Run first-time setup again',
+        icon: <ActionIcon><RotateCcw size={16} /></ActionIcon>,
+        keywords: 'onboarding welcome setup drives pool',
+        run: () => useSettings.getState().set({ onboarded: false }),
       },
     ]
     const store = catalog

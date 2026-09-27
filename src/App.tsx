@@ -1,8 +1,9 @@
 import { useEffect } from 'react'
-import { MotionConfig } from 'motion/react'
+import { AnimatePresence, MotionConfig } from 'motion/react'
 import { IconDefs } from '@/components/icons/AppIcon'
 import { CommandPalette } from '@/components/home/CommandPalette'
 import { Dock } from '@/components/home/Dock'
+import { Onboarding } from '@/components/onboarding/Onboarding'
 import { Home } from '@/components/home/Home'
 import { Wallpaper } from '@/components/home/Wallpaper'
 import { SheetHost } from '@/components/ui/Sheet'
@@ -18,6 +19,7 @@ if (import.meta.env.DEV) {
 
 export function App() {
   const reduceTransparency = useSettings((s) => s.reduceTransparency)
+  const onboarded = useSettings((s) => s.onboarded)
 
   useEffect(() => startSystemPolling(), [])
   useEffect(() => {
@@ -32,6 +34,7 @@ export function App() {
       <Dock />
       <SheetHost />
       <CommandPalette />
+      <AnimatePresence>{!onboarded && <Onboarding />}</AnimatePresence>
       <Toaster />
     </MotionConfig>
   )

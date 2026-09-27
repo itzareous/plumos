@@ -46,5 +46,8 @@ Import from `@/…` (maps to `src/`). No other runtime deps without a good reaso
   (see `stores/system.ts` for the pattern).
 - Artwork must be original: no third-party logos, trademarks or copied UI. App icons
   evoke their category with our own shapes.
+- zustand v5: a selector must return stable references. `useStore((s) => s.items.filter(...))`
+  returns a new array every call and crashes React with an update loop — select the raw
+  value and derive with `useMemo` instead (or use `useShallow` from `zustand/react/shallow`).
 - Keep components small and files focused; match the existing code style
   (no semicolons, single quotes, 2-space indent, 120 cols).
