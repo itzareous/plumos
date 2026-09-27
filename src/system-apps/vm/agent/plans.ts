@@ -128,15 +128,22 @@ const DEFS: PlanDef[] = [
       const e = t.match(/(\d+(?:\.\d+)?)\s*([+\-*/x×÷])\s*(\d+(?:\.\d+)?)/)
       if (e) return `${e[1]}${{ x: '*', '×': '*', '÷': '/' }[e[2]] ?? e[2]}${e[3]}`
       const nums = t.match(/\d+(?:\.\d+)?/g)
-      if (/split|share|between|ways/i.test(t) && nums && nums.length >= 2) return `${nums[0]}/${nums[1]}`
+      if (/split|share|between|ways/i.test(t) && nums && nums.length >= 2) {
+        const total = t.match(/[$£€]\s*(\d+(?:\.\d+)?)/)?.[1] ?? nums[0]
+        const people = nums.find((n) => n !== total) ?? nums[1]
+        return `split:${total}/${people}`
+      }
       return null
     },
     build: (os, param) => {
-      const { keys, label, result } = calcKeys(param ?? DEFAULT_SUM)
+      const split = !param || param.startsWith('split:')
+      const sum = param?.replace('split:', '') ?? DEFAULT_SUM
+      const { keys, label, result } = calcKeys(sum)
+      const [total, people] = sum.split('/')
       return {
         id: 'calc',
-        task: param ? `Work out ${label}` : 'Split a $126 bill four ways',
-        done: param ? `${label} = ${result}` : `Each person pays $${Number(result).toFixed(2)}.`,
+        task: split ? `Split a $${total} bill ${people} ways` : `Work out ${label}`,
+        done: split ? `Each person pays $${Number(result).toFixed(2)}.` : `${label} = ${result}`,
         steps: [
           ...launch(os, 'calc', 'Open Calculator'),
           ...keys.map((k, i): Step => ({ do: 'click', target: `calc.${k}`, say: i === 0 ? `Enter ${label}` : undefined })),
@@ -267,7 +274,7 @@ const DEFS: PlanDef[] = [
       return {
         id: 'notes',
         task,
-        done: 'Grocery list written in Notes.',
+        done: `${list.title} written in Notes.`,
         steps: [
           ...launch(os, 'notes', 'Open Notes'),
           { do: 'type', target: 'notes.text', text: list.full, say: 'Type the list' },
