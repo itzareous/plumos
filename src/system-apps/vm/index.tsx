@@ -1,11 +1,11 @@
-import { SheetPage } from '@/components/ui/Sheet'
+import { findApp } from '@/apps/catalog'
 import type { SheetProps } from '../registry'
+import { NotFound } from './NotFound'
+import { VmViewer } from './VmViewer'
 
-// Placeholder — to be built out.
-export default function Placeholder(_: SheetProps) {
-  return (
-    <SheetPage title="Virtual Machine">
-      <p className="text-white/60">Coming soon.</p>
-    </SheetPage>
-  )
+/** Virtual machine viewer. Opened with `{ appId }` of a catalog app whose `kind` is `vm`. */
+export default function VirtualMachine({ params }: SheetProps) {
+  const app = params.appId ? findApp(params.appId) : undefined
+  if (!app || app.kind !== 'vm' || !app.vm) return <NotFound appId={params.appId} />
+  return <VmViewer key={app.id} app={app} spec={app.vm} />
 }

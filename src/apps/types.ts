@@ -39,6 +39,10 @@ export interface AppInfo {
   vm?: { os: 'windows' | 'android' | 'linux'; cpus: number; memoryGb: number; diskGb: number }
   /** Rough install size in bytes, shown in the App Store. */
   size?: number
+  /** Recently added to the catalog; featured under "New & noteworthy". */
+  isNew?: boolean
+  /** Extra search terms that don't appear in the name or tagline. */
+  keywords?: string[]
 }
 
 export const categoryLabels: Record<AppCategory, string> = {
