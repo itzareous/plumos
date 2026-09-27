@@ -1,0 +1,14 @@
+services:
+  plumos:
+    build: .
+    container_name: plumos
+    restart: unless-stopped
+    ports:
+      - '80:80'
+    volumes:
+      # Mount your data drive here so the storage widgets report its real size.
+      - /mnt/data:/data:ro
+      # Lets Plumos read the CPU temperature from the host.
+      - /sys/class/thermal:/sys/class/thermal:ro
+    # Report the host's hostname instead of the container id.
+    hostname: plumos

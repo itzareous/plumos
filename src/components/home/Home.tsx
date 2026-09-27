@@ -1,4 +1,6 @@
 import { motion } from 'motion/react'
+import { Activity, Image, LayoutGrid, ShoppingBag } from 'lucide-react'
+import { useContextMenu } from '@/components/ui/ContextMenu'
 import { widgetRegistry } from '@/components/widgets/registry'
 import { useSettings } from '@/stores/settings'
 import { useWindows } from '@/stores/windows'
@@ -9,6 +11,8 @@ import { SearchButton } from './SearchButton'
 export function Home() {
   const widgets = useSettings((s) => s.widgets)
   const sheetOpen = useWindows((s) => s.sheet !== null)
+  const open = useWindows((s) => s.open)
+  const menu = useContextMenu()
 
   return (
     <motion.main
@@ -16,6 +20,13 @@ export function Home() {
       animate={{ scale: sheetOpen ? 0.94 : 1, opacity: sheetOpen ? 0 : 1 }}
       transition={{ type: 'spring', stiffness: 200, damping: 30 }}
       aria-hidden={sheetOpen}
+      onContextMenu={menu.handler(() => [
+        { label: 'Change wallpaper', icon: <Image size={15} />, onSelect: () => open('settings', { section: 'appearance' }) },
+        { label: 'Edit widgets', icon: <LayoutGrid size={15} />, onSelect: () => open('settings', { section: 'widgets' }) },
+        'separator',
+        { label: 'App Store', icon: <ShoppingBag size={15} />, onSelect: () => open('app-store') },
+        { label: 'Live Usage', icon: <Activity size={15} />, onSelect: () => open('live-usage') },
+      ])}
     >
       <div className="mx-auto flex min-h-full max-w-[1100px] flex-col items-center px-4 pt-[clamp(28px,7vh,80px)] pb-32">
         <Greeting />
@@ -37,6 +48,7 @@ export function Home() {
           <SearchButton />
         </div>
       </div>
+      {menu.element}
     </motion.main>
   )
 }
